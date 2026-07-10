@@ -1,133 +1,59 @@
 # Deploying RippleLens
 
-This guide deploys RippleLens as one Spring Boot web app. The backend, Thymeleaf page, CSS, and JavaScript are all served from the same application.
+RippleLens is a Spring Boot web app. It must be deployed as a Render **Web Service**, not a Static Site.
 
 ## Recommended Free Host
 
-Use **Render Free Web Service** for this project.
+Use **Render Free Web Service**.
 
-Why Render fits this app:
+Why it fits:
 
-- It can run a full Spring Boot backend, not only static HTML.
-- It supports Docker builds, so the server can build the Maven app even if Maven is not installed locally.
-- The current database is in-memory H2, so the app does not need a separate database service for the first public demo.
-- The free tier is enough for a student/demo project.
+- It can run the Spring Boot backend and frontend together.
+- It supports Docker builds.
+- The included H2 database is enough for a demo deployment.
+- The free tier is fine for showing the project publicly.
 
-Important free-tier limits:
+Free-tier notes:
 
-- The app can sleep after inactivity, so the first request after a pause may take about a minute.
-- The local filesystem is temporary.
-- The H2 database resets when the app restarts.
+- The app can sleep after inactivity, so first load can take 50 seconds or more.
+- The H2 database is stored inside the service filesystem and can reset on redeploy/restart.
+- For real users and permanent accounts, use PostgreSQL later.
 
-## What This Project Uses
+## Required Render Environment Variables
 
-- Build tool: Maven (`pom.xml`)
-- Java version: 21
-- Framework: Spring Boot 3.3.5
-- Frontend: Thymeleaf template plus static CSS and JavaScript in `src/main/resources`
-- Database: H2 in-memory database
-- Deployment packaging: Docker
-
-## Deployment Files
-
-- `Dockerfile` builds and runs the Spring Boot jar.
-- `.dockerignore` keeps local files out of the Docker build.
-- `render.yaml` defines the Render web service.
-- `.env.example` lists optional local environment variables.
-- `src/main/resources/application-prod.properties` disables the H2 console in production.
-
-## Before Deploying
-
-Make sure the project is committed and pushed to GitHub. Render deploys most easily from a GitHub repository.
-
-```bash
-git add .
-git commit -m "Prepare RippleLens for deployment"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/ripplelens.git
-git push -u origin main
-```
-
-If `origin` already exists, use this instead:
-
-```bash
-git remote -v
-git push -u origin main
-```
-
-## Deploy On Render
-
-1. Go to `https://render.com`.
-2. Sign up or log in.
-3. Connect your GitHub account.
-4. Click **New**.
-5. Click **Blueprint**.
-6. Choose the GitHub repository that contains RippleLens.
-7. Render will detect `render.yaml`.
-8. Confirm the service name is `ripplelens`.
-9. Confirm the plan is **Free**.
-10. Click **Apply** or **Deploy**.
-11. Wait for the Docker build to finish.
-12. Open the public `.onrender.com` URL that Render gives you.
-
-## Manual Render Setup
-
-If you do not use the Blueprint flow:
-
-1. Click **New**.
-2. Click **Web Service**.
-3. Choose the RippleLens GitHub repository.
-4. Select **Docker** as the runtime.
-5. Set the Dockerfile path to `./Dockerfile`.
-6. Choose the **Free** instance type.
-7. Set the health check path to `/`.
-8. Add these environment variables:
+Set these in Render:
 
 ```text
 SPRING_PROFILES_ACTIVE=prod
 H2_CONSOLE_ENABLED=false
 ```
 
-9. Deploy the service.
-
-## Check The Deployed App
-
-After deployment, open these URLs using your Render domain:
+Optional live intelligence keys:
 
 ```text
-https://YOUR-SERVICE.onrender.com/
-https://YOUR-SERVICE.onrender.com/api/metals
-https://YOUR-SERVICE.onrender.com/api/currencies/top
-https://YOUR-SERVICE.onrender.com/api/cryptos/top
-https://YOUR-SERVICE.onrender.com/api/assets/XAU/prices
-https://YOUR-SERVICE.onrender.com/api/assets/XAU/insight
-https://YOUR-SERVICE.onrender.com/api/metals/XAU/money-pressure
+OPENAI_API_KEY=your_openai_key
+NEWS_API_KEY=your_newsapi_key
+METALS_DEV_API_KEY=your_metals_dev_key
 ```
 
-The page should load `/styles.css` and `/app.js` automatically because Spring Boot serves files from `src/main/resources/static`.
+Do not commit `config/ripplelens-secrets.properties`. It is local only.
 
-## Environment Variables
+## Deploy
 
-These settings are optional unless you replace H2 with another database later.
+1. Push this project to GitHub.
+2. Go to `https://render.com`.
+3. Click **New**.
+4. Click **Blueprint**.
+5. Choose the `lucasgergi-netizen/RippleLens` GitHub repo.
+6. Render should detect `render.yaml`.
+7. Add the optional secret values if you want AI/news/metals history online.
+8. Deploy.
+9. Open `https://ripplelens.onrender.com`.
+
+## Test URLs
 
 ```text
-PORT=8080
-SPRING_PROFILES_ACTIVE=prod
-H2_CONSOLE_ENABLED=false
-SPRING_DATASOURCE_URL=jdbc:h2:mem:ripplelens
-SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
-SPRING_DATASOURCE_USERNAME=sa
-SPRING_DATASOURCE_PASSWORD=
-JPA_DDL_AUTO=create-drop
-JPA_SHOW_SQL=false
+https://ripplelens.onrender.com/
+https://ripplelens.onrender.com/healthz
+https://ripplelens.onrender.com/api/assets
 ```
-
-For the current demo deployment, keep H2. If you later add real accounts, saved watchlists, or saved alerts, replace H2 with PostgreSQL so data survives restarts.
-
-## Troubleshooting
-
-If the deploy fails during build, open the Render logs and look for the first Maven error.
-
-If the page opens but data does not load, test `/api/metals` first. If that works, the backend is running and the problem is likely a browser JavaScript error.
-
-If the first page load is slow, wait about one minute. Free Render services can sleep after inactivity.

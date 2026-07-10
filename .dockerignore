@@ -3,8 +3,9 @@
 .vscode
 .settings
 target
+data
 *.log
 .DS_Store
 .env
 .env.*
-!.env.example
+config/ripplelens-secrets.properties

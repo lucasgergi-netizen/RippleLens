@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RippleLens</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="side-rail">
+        <div class="brand-block">
+            <div class="brand-mark">RL</div>
+            <div>
+                <strong>RippleLens</strong>
+                <span>Economic intelligence terminal</span>
+            </div>
+        </div>
+
+        <div class="rail-card auth-card">
+            <div class="account-topline">
+                <span>Account</span>
+                <button id="profileAvatarButton" type="button" class="profile-avatar-button" aria-label="Open profile menu" aria-expanded="false" hidden>G</button>
+            </div>
+            <button id="accountProfileButton" type="button" class="account-profile-button" aria-label="Open account menu" hidden>
+                <span id="accountProfileInitials" class="profile-avatar">G</span>
+                <span>
+                    <strong id="authStatus">Guest mode</strong>
+                    <small id="authSubtext">Sign in to save your own Watchlist, Alerts, and Portfolio.</small>
+                    <em id="accountStatusPill">Guest</em>
+                </span>
+            </button>
+            <div id="guestAccountArea" class="guest-account-area">
+                <strong>Guest mode</strong>
+                <small>Sign in to save your own Watchlist, Alerts, and Portfolio.</small>
+            </div>
+            <div id="authQuickActions" class="auth-actions">
+                <button id="openLoginButton" type="button">Sign in</button>
+                <button id="openRegisterButton" type="button" class="secondary-button">Register</button>
+                <button id="continueGuestSidebarButton" type="button" class="ghost-button">Continue as guest</button>
+            </div>
+            <div id="accountProfileMenu" class="account-profile-menu" role="menu" hidden>
+                <button type="button" role="menuitem" data-profile-action="profile">View profile</button>
+                <button type="button" role="menuitem" data-profile-action="account">Account settings</button>
+                <button type="button" role="menuitem" data-profile-action="notifications">Notification settings</button>
+                <button id="logoutButton" type="button" role="menuitem" class="danger-menu-item">Sign out</button>
+            </div>
+            <div id="authMessage" class="tracking-message"></div>
+            <div id="workspaceMini" class="workspace-mini">Workspace loading...</div>
+        </div>
+
+        <nav class="side-nav" aria-label="Workspace sections">
+            <a href="#terminal" class="active">Terminal</a>
+            <a href="#workspaceHome">Workspace</a>
+            <a href="#portfolio">Portfolio</a>
+            <a href="#analysis">Analysis</a>
+            <a href="#macro">Macro</a>
+            <a href="#events">Event Watch</a>
+            <a href="#map">Ripple Map</a>
+        </nav>
+
+        <div class="rail-card data-status-rail warning-rail">
+            <span>Asset universe</span>
+            <strong>Metals + FX + Crypto</strong>
+            <small>Live feeds, stored history, and explainable risk context.</small>
+            <button id="demoModeButton" type="button">Open API status</button>
+        </div>
+
+        <div class="rail-card trust-rail warning-rail">
+            <span>Trust mode</span>
+            <strong>No guaranteed predictions</strong>
+            <small>Every insight is educational and source-aware.</small>
+        </div>
+
+        <div class="rail-card watchlist-card">
+            <span>Watchlist</span>
+            <div id="watchlistItems" class="watchlist-items">No saved assets yet.</div>
+        </div>
+    </aside>
+
+    <main class="workspace">
+        <header class="topbar">
+            <div>
+                <span class="topbar-kicker">Spring Boot fintech MVP</span>
+                <strong>Global asset pressure monitor</strong>
+            </div>
+            <div id="marketTape" class="market-tape" aria-label="Live market ticker">Loading live market tape...</div>
+        </header>
+
+        <section class="hero terminal-hero" id="terminal">
+            <div>
+                <p class="eyebrow">Metals · Currencies · Crypto · Economic Causes</p>
+                <h1>RippleLens</h1>
+                <p class="subtitle">Reveal how metals, currencies, crypto, macro indicators, and global risks move through the economy.</p>
+            </div>
+            <div class="hero-status">
+                <div id="streamStatus" class="live-pill">Live stream connecting...</div>
+                <div class="source-pill">Explainable analysis</div>
+            </div>
+        </section>
+
+        <section id="workspaceHome" class="personal-workspace">
+            <div class="workspace-card workspace-profile-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Personal Workspace</span>
+                        <h2 id="workspaceGreeting">Welcome back</h2>
+                    </div>
+                    <span id="workspaceMode" class="workspace-mode">Guest mode</span>
+                </div>
+                <p id="workspaceSummaryText">Loading your saved market workspace...</p>
+                <div id="workspaceStats" class="workspace-stat-grid"></div>
+            </div>
+
+            <div class="workspace-card recent-assets-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Recent Activity</span>
+                        <h2>Recently analyzed</h2>
+                    </div>
+                    <small id="recentAssetsCount">No assets yet</small>
+                </div>
+                <div id="recentAssetsList" class="recent-assets-list">Open an asset to start building your workspace history.</div>
+            </div>
+
+            <div class="workspace-card alert-center-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Notification Center</span>
+                        <h2>Alert activity</h2>
+                    </div>
+                    <small id="alertCenterCount">No alerts</small>
+                </div>
+                <div id="alertNotificationCenter" class="alert-notification-center">
+                    Create a price alert to start receiving notifications.
+                </div>
+            </div>
+
+            <div class="workspace-card workspace-news-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Important Signals</span>
+                        <h2>Latest market brief</h2>
+                    </div>
+                    <small id="workspaceNewsCount">Waiting</small>
+                </div>
+                <div id="workspaceNewsList" class="workspace-news-list">
+                    Analyze an asset to see the most important related news and signals.
+                </div>
+            </div>
+
+            <div class="workspace-card preference-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Preferences</span>
+                        <h2>Default workspace</h2>
+                    </div>
+                    <span id="preferenceStatus" class="preference-status">Saved automatically</span>
+                </div>
+                <div class="preference-grid">
+                    <label for="defaultCategoryPreference">Default category</label>
+                    <select id="defaultCategoryPreference">
+                        <option value="METAL">Metals</option>
+                        <option value="CRYPTOCURRENCY">Cryptocurrencies</option>
+                        <option value="CURRENCY">Currencies</option>
+                    </select>
+
+                    <label for="defaultRangePreference">Default chart range</label>
+                    <select id="defaultRangePreference">
+                        <option value="1D">1D</option>
+                        <option value="7D">7D</option>
+                        <option value="30D">30D</option>
+                        <option value="6M">6M</option>
+                        <option value="1Y">1Y</option>
+                    </select>
+
+                    <label for="displayCurrencyPreference">Display currency</label>
+                    <select id="displayCurrencyPreference">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="AED">AED</option>
+                        <option value="GBP">GBP</option>
+                    </select>
+                </div>
+                <label class="preference-toggle">
+                    <input id="welcomePreference" type="checkbox">
+                    <span>Show welcome screen on first visit</span>
+                </label>
+                <small class="preference-note">These settings are saved through the backend, so they can move with the frontend later.</small>
+            </div>
+        </section>
+
+        <section class="asset-command">
+            <div class="asset-heading">
+                <span>Selected asset</span>
+                <strong id="activeAssetTitle">Loading...</strong>
+                <small id="activeAssetSubtitle">Choose an asset to begin analysis.</small>
+            </div>
+
+            <div class="toolbar">
+                <div class="category-tabs" aria-label="Asset categories">
+                    <button class="category-button active" data-category="METAL">Metals</button>
+                    <button class="category-button" data-category="CRYPTOCURRENCY">Cryptocurrencies</button>
+                    <button class="category-button" data-category="CURRENCY">Currencies</button>
+                </div>
+                <label for="assetSelect">Asset</label>
+                <select id="assetSelect"></select>
+                <button id="analyzeButton">Analyze</button>
+                <button id="watchButton" class="secondary-button">Save</button>
+            </div>
+
+            <div class="asset-alert-callout">
+                <div>
+                    <span>Price alerts</span>
+                    <strong id="assetAlertSummary">No alerts for this asset</strong>
+                    <small>Create, edit, disable, or delete alerts for the selected asset.</small>
+                </div>
+                <button id="setAlertButton" class="secondary-button set-alert-button" type="button">Set Alert</button>
+            </div>
+        </section>
+
+        <section id="portfolio" class="portfolio-workbench">
+            <div class="portfolio-summary-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Portfolio Tracker</span>
+                        <h2>Asset exposure</h2>
+                    </div>
+                    <span class="portfolio-disclaimer">Educational tracking only</span>
+                </div>
+                <div id="portfolioSummaryStats" class="portfolio-summary-grid"></div>
+                <div id="portfolioAllocation" class="portfolio-allocation"></div>
+                <div id="portfolioRiskPanel" class="portfolio-risk-panel"></div>
+            </div>
+
+            <div class="portfolio-form-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Add Holding</span>
+                        <h2>Track an asset</h2>
+                    </div>
+                    <button id="portfolioUseSelectedButton" type="button" class="mini-button">Use selected</button>
+                </div>
+                <div class="portfolio-form-grid">
+                    <label for="portfolioAssetSelect">Asset</label>
+                    <select id="portfolioAssetSelect"></select>
+
+                    <label for="portfolioQuantity">Quantity</label>
+                    <input id="portfolioQuantity" type="number" step="0.00000001" placeholder="Example: 0.25 or 10">
+
+                    <label for="portfolioAverageCost">Average cost</label>
+                    <input id="portfolioAverageCost" type="number" step="0.0001" placeholder="Optional, uses current price">
+                </div>
+                <div class="portfolio-form-actions">
+                    <button id="portfolioSaveButton" type="button">Save Holding</button>
+                    <small>Use your average purchase price to estimate unrealized gain/loss.</small>
+                    <div id="portfolioMessage" class="tracking-message"></div>
+                </div>
+            </div>
+
+            <div class="portfolio-holdings-card">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Holdings</span>
+                        <h2>Tracked positions</h2>
+                    </div>
+                    <small id="portfolioHoldingCount">No holdings yet</small>
+                </div>
+                <div id="portfolioHoldings" class="portfolio-holdings">No portfolio holdings yet.</div>
+            </div>
+        </section>
+
+        <section id="alertPanel" class="alert-workbench" hidden>
+            <div class="alert-form-card">
+                <div class="alert-panel-header">
+                    <div>
+                        <span class="eyebrow">Price Alerts</span>
+                        <h2 id="alertPanelTitle">Set Price Alert</h2>
+                        <p id="alertPanelSubtitle">Create an alert for the selected asset.</p>
+                    </div>
+                    <button id="cancelAlertEditButton" type="button" class="mini-button" hidden>Cancel edit</button>
+                </div>
+                <div id="alertAssetPill" class="alert-asset-pill">No asset selected</div>
+                <div class="alert-form-grid">
+                    <label for="alertType">Condition</label>
+                    <select id="alertType">
+                        <option value="PRICE_ABOVE">Price goes above</option>
+                        <option value="PRICE_BELOW">Price goes below</option>
+                        <option value="PERCENT_INCREASE_REACHES">Percentage increases by</option>
+                        <option value="PERCENT_DECREASE_REACHES">Percentage decreases by</option>
+                    </select>
+
+                    <label for="alertPrice">Target value</label>
+                    <div class="alert-field">
+                        <input id="alertPrice" type="number" step="0.0001" placeholder="Example: 4100 or 2.5">
+                        <small>Use a price for price alerts, or a percent value for percentage alerts.</small>
+                    </div>
+
+                    <label for="alertNotification">Notification</label>
+                    <div class="alert-field">
+                        <select id="alertNotification">
+                            <option value="IN_APP">In-app notification</option>
+                            <option value="EMAIL">Email notification</option>
+                            <option value="BOTH">Both</option>
+                            <option value="SAVE_ONLY">No notification, just save</option>
+                        </select>
+                        <small>Email is saved as a preference for the next delivery phase.</small>
+                    </div>
+
+                    <label for="alertRecurring">Alert mode</label>
+                    <select id="alertRecurring">
+                        <option value="false">One-time alert</option>
+                        <option value="true">Recurring alert</option>
+                    </select>
+                </div>
+                <div class="alert-form-actions">
+                    <button id="addAlertButton" type="button">Create Alert</button>
+                    <div id="trackingMessage" class="tracking-message"></div>
+                </div>
+            </div>
+
+            <div class="alert-manager-card">
+                <div class="alert-panel-header">
+                    <div>
+                        <span class="eyebrow">Alert Manager</span>
+                        <h2>Saved Alerts</h2>
+                    </div>
+                    <div class="alert-filters" aria-label="Alert filters">
+                        <button type="button" class="alert-filter active" data-alert-filter="ALL">All</button>
+                        <button type="button" class="alert-filter" data-alert-filter="ACTIVE">Active</button>
+                        <button type="button" class="alert-filter" data-alert-filter="TRIGGERED">Triggered</button>
+                        <button type="button" class="alert-filter" data-alert-filter="DISABLED">Disabled</button>
+                        <button type="button" class="alert-filter" data-alert-filter="CURRENT">This asset</button>
+                    </div>
+                </div>
+                <div id="alertItems" class="alert-items">No alerts yet.</div>
+            </div>
+        </section>
+
+        <section class="dashboard">
+        <article class="panel main-panel asset-card">
+            <h2>Market Snapshot</h2>
+            <div id="snapshot" class="snapshot">Loading...</div>
+        </article>
+
+        <article class="panel chart-panel">
+            <div class="panel-header">
+                <div class="chart-title-block">
+                    <h2>Price Chart</h2>
+                    <span id="comparisonStatus" class="comparison-status">Single asset view</span>
+                </div>
+                <div class="chart-controls">
+                    <div class="range-tabs" aria-label="Chart range">
+                        <button class="range-button" data-range-key="1D" data-range="1">1D</button>
+                        <button class="range-button" data-range-key="7D" data-range="7">7D</button>
+                        <button class="range-button active" data-range-key="30D" data-range="30">30D</button>
+                        <button class="range-button" data-range-key="6M" data-range="180">6M</button>
+                        <button class="range-button" data-range-key="1Y" data-range="365">1Y</button>
+                    </div>
+                    <div class="compare-controls chart-compare-controls" aria-label="Chart comparison">
+                        <label for="compareSelect">Compare</label>
+                        <select id="compareSelect"></select>
+                        <button id="compareButton" class="secondary-button">Apply</button>
+                        <button id="clearCompareButton" class="ghost-button">Clear</button>
+                    </div>
+                </div>
+            </div>
+            <div id="chartStats" class="chart-stat-grid"></div>
+            <div class="chart-frame">
+                <canvas id="priceChart" width="960" height="420"></canvas>
+                <div id="chartTooltip" class="chart-tooltip" hidden></div>
+            </div>
+            <div id="chartMovement" class="movement-strip"></div>
+        </article>
+
+        <article class="panel wide market-insight-panel" id="analysis">
+            <div class="insight-header">
+                <div>
+                    <span class="eyebrow">Market Insight</span>
+                    <h2 id="marketInsightTitle">Today's Market Insight</h2>
+                    <p id="analysisSummary" class="analysis-summary">Select an asset to generate a plain-language explanation.</p>
+                </div>
+                <div class="ai-badge" id="aiInsightBadge">AI-ready</div>
+            </div>
+            <div id="insightSignalGrid" class="insight-signal-grid"></div>
+            <div class="insight-content-grid">
+                <div class="insight-block drivers-block">
+                    <div class="block-heading">
+                        <span>Key drivers</span>
+                        <small id="topFactorLabel">Top factor loading...</small>
+                    </div>
+                    <div id="insightDrivers" class="driver-list"></div>
+                </div>
+                <div class="insight-block quick-take-block">
+                    <div class="block-heading">
+                        <span>Quick take</span>
+                    </div>
+                    <p id="insightQuickTake">Waiting for asset movement data.</p>
+                    <div id="qualityStrip" class="quality-strip"></div>
+                </div>
+                <div class="insight-block news-block">
+                    <div class="block-heading">
+                        <span>Latest related news</span>
+                        <small id="newsFeedLabel">NewsAPI.org feed</small>
+                    </div>
+                    <div id="relatedNewsList" class="related-news-list"></div>
+                </div>
+            </div>
+            <div class="insight-disclaimer">For informational purposes only. Not financial advice.</div>
+        </article>
+
+        <article class="panel wide movement-timeline-panel">
+            <div class="panel-header">
+                <div>
+                    <span class="eyebrow">Why Did This Move?</span>
+                    <h2>Movement timeline</h2>
+                </div>
+                <small id="movementTimelineMeta">Price + news + event context</small>
+            </div>
+            <p class="analysis-summary">A simple timeline connecting price milestones with the strongest related headlines and watch signals.</p>
+            <div id="movementTimelineList" class="movement-timeline-list">
+                Select an asset to build the movement timeline.
+            </div>
+        </article>
+
+        <article class="panel wide relationship-panel">
+            <div class="panel-header">
+                <div>
+                    <span class="eyebrow">Relationship Engine</span>
+                    <h2>Asset movement relationships</h2>
+                </div>
+                <span id="relationshipWindow" class="relationship-window">30D correlation</span>
+            </div>
+            <p id="relationshipSummary" class="analysis-summary">Loading relationship signals...</p>
+            <div id="relationshipHighlights" class="relationship-highlights"></div>
+            <div id="relationshipGrid" class="relationship-grid"></div>
+            <div id="relationshipNotes" class="relationship-notes"></div>
+        </article>
+
+        <article class="panel wide macro-panel" id="macro">
+            <h2>Macro Context</h2>
+            <p id="macroSummary" class="analysis-summary">Loading macro context...</p>
+            <div id="macroStrip" class="macro-strip"></div>
+        </article>
+
+        <article class="panel wide event-panel" id="events">
+            <h2>Event Watch</h2>
+            <div id="eventSignals" class="event-grid"></div>
+        </article>
+
+        <article class="panel wide live-panel" id="dataStatus">
+            <div class="panel-header">
+                <h2>Live Data Status</h2>
+                <span id="liveStatus" class="status-text">Checking live market data...</span>
+            </div>
+            <div id="providerHealthGrid" class="provider-health-grid" aria-label="External data provider health">
+                <div class="provider-health-card checking">Checking provider health...</div>
+            </div>
+            <div id="liveMetalStrip" class="live-strip"></div>
+            <div id="liveCryptoStrip" class="live-strip"></div>
+            <div id="liveCurrencyStrip" class="live-strip second-live-strip"></div>
+        </article>
+
+        <article class="panel">
+            <h2>Possible Causes</h2>
+            <ul id="causes"></ul>
+        </article>
+
+        <article class="panel">
+            <h2>Possible Consequences</h2>
+            <ul id="consequences"></ul>
+        </article>
+
+        <article class="panel wide" id="map">
+            <h2>Causal Ripple Map</h2>
+            <p id="mapTitle" class="muted"></p>
+            <div id="rippleMap" class="ripple-map"></div>
+        </article>
+
+        <article class="panel wide trust-panel">
+            <h2>Data Trust Report</h2>
+            <div id="trustReport">Loading data trust report...</div>
+        </article>
+        </section>
+    </main>
+</div>
+
+<section id="welcomeGate" class="welcome-gate" aria-labelledby="welcomeTitle" role="dialog" aria-modal="true" hidden>
+    <div class="welcome-shell">
+        <div class="welcome-copy">
+            <div class="welcome-brand">
+                <div class="brand-mark welcome-mark">RL</div>
+                <span>Economic intelligence terminal</span>
+            </div>
+            <p class="eyebrow">Metals · FX · Crypto · Live Risk Signals</p>
+            <h2 id="welcomeTitle">Welcome to RippleLens</h2>
+            <p>Track metals, currencies, and crypto with live prices, insights, alerts, and market intelligence.</p>
+            <div class="welcome-proof">
+                <span>Live market tape</span>
+                <span>Explainable insights</span>
+                <span>Private saved workspace</span>
+            </div>
+        </div>
+        <div class="welcome-panel">
+            <span class="eyebrow">Start your workspace</span>
+            <h3>Choose how to enter</h3>
+            <p>Use guest mode instantly, or sign in to keep your Watchlist, Alerts, and Portfolio saved to your account.</p>
+            <div class="welcome-actions">
+                <button id="welcomeLoginButton" type="button">Sign in</button>
+                <button id="welcomeRegisterButton" type="button" class="secondary-button">Register</button>
+                <button id="continueGuestButton" type="button" class="ghost-button">Continue as guest</button>
+            </div>
+            <small>For informational purposes only. Not financial advice.</small>
+        </div>
+    </div>
+</section>
+
+<section id="authModal" class="auth-modal" aria-labelledby="authModalTitle" role="dialog" aria-modal="true" hidden>
+    <div class="auth-dialog">
+        <button id="closeAuthModalButton" type="button" class="modal-close" aria-label="Close">×</button>
+        <div class="auth-dialog-header">
+            <span class="eyebrow">RippleLens Account</span>
+            <h2 id="authModalTitle">Sign in</h2>
+            <p id="authModalSubtitle">Access your saved Watchlist, Alerts, and Portfolio.</p>
+        </div>
+        <div id="authForms" class="auth-forms">
+            <label id="authNameLabel" for="authName">Name</label>
+            <input id="authName" type="text" placeholder="Your name">
+            <label for="authEmail">Email</label>
+            <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+            <label for="authPassword">Password</label>
+            <input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+            <button id="loginButton" type="button">Sign in with Email</button>
+            <button id="registerButton" type="button" class="secondary-button">Create account</button>
+        </div>
+        <div class="auth-switch">
+            <span id="authSwitchText">Don't have an account?</span>
+            <button id="authSwitchButton" type="button" class="link-button">Register</button>
+        </div>
+    </div>
+</section>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,251 +1,131 @@
 # RippleLens
 
-RippleLens is a beginner-friendly Spring Boot finance app that explains metal price movement using metals, currencies, crypto assets, and economic signals.
+RippleLens is a Spring Boot finance and economics MVP that analyzes metals, cryptocurrencies, and currencies. It goes beyond a price dashboard by combining asset categories, historical charts, live API data, stored observations, rule-based explanations, and causal ripple maps.
 
-This first version is an MVP with live-first market data and stored demo fallback data. It already has:
+## Current Status
 
-- Gold, silver, platinum, and palladium
-- Top 10 fiat currencies
-- Top 10 crypto assets
-- Live crypto price history from Binance Spot API, with CoinGecko as fallback
-- Live fiat currency history from Frankfurter
-- Live latest metal prices from Gold API, with stored history as chart fallback
-- API endpoints
-- A simple web page
-- A basic "why did it move?" explanation engine
-- A basic Money Pressure Index
+Completed phases:
 
-## 1. Best Tool To Use
+- Phase 1: Core Spring Boot app structure
+- Phase 2: Finished dashboard UI
+- Phase 3: Real API data for crypto and currencies
+- Phase 4: Stored historical observations and scheduled refresh
+- Phase 5: Intelligent rule-based explanations
+- Phase 6: Causal ripple maps for metals, crypto, and currencies
+- Phase 7: Expanded live assets for top crypto, major currencies, and AED
+- Phase 8: Asset comparison mode
+- Phase 9: Macro indicator context
+- Phase 10: Event-watch intelligence
+- Phase 11: Persistent H2 database
+- Phase 12: Market-terminal style chart upgrade
+- Phase 13: Full fintech-terminal frontend redesign
+- Phase 14: Shareable asset detail URLs
+- Phase 15: Binance Spot crypto data with CoinGecko fallback
+- Phase 16: Stronger explainable analysis summaries
+- Phase 17: Database-backed watchlist and favorites
+- Phase 18: Multi-condition database-backed asset alerts
+- Phase 19: Data trust report
+- Phase 20: Demo mode and presentation polish
+- Phase 21: Full dark-terminal visual refinement
 
-Use **Spring Tools for Eclipse** first.
+## Main Features
 
-Why:
+- Asset categories:
+  - Metals: gold, silver, copper, platinum, palladium
+  - Cryptocurrencies: BTC, ETH, USDT, BNB, USDC, XRP, SOL, TRX, FIGR_HELOC, HYPE
+  - Currencies: USD, EUR, JPY, GBP, CNY, CAD, AUD, CHF, HKD, SGD, SEK, AED
+- 7-day and 30-day price charts
+- Hourly chart mode using a clearly labeled modeled 24-hour path
+- Market-terminal style chart with dark grid, filled price area, right-side price axis, latest-price tag, hover tooltip, and high/low/move stat strip
+- Professional terminal-style interface with sidebar navigation, live market tape, selected-asset command bar, and clearer dashboard sections
+- Shareable asset views such as `/?asset=BTC&category=CRYPTOCURRENCY`
+- Binance Spot historical daily crypto observations, with CoinGecko fallback when available
+- Stronger explanation summaries that classify move size and pressure channels
+- Database-backed watchlist for saving multiple metals, currencies, and crypto assets without duplicates
+- Multi-condition alerts with active, triggered, and disabled states
+- Data trust report showing source labels, observation count, caveats, and educational-use status
+- Demo mode button for quickly cycling through showcase assets
+- Consistent dark-terminal color system with no white dashboard panels
+- Normalized comparison chart for two assets
+- Increase/decrease movement cards showing absolute and percentage change
+- Live crypto prices from Binance Spot, with CoinGecko fallback
+- Live currency rates from Frankfurter
+- Live metal prices from Gold API
+- Live top-crypto prices from Binance Spot, with CoinGecko fallback
+- Live major-currency rates from Frankfurter
+- Daily stored price observations
+- Manual live-data refresh endpoint
+- Scheduled refresh every 6 hours
+- Rule-based economic insight engine
+- Causal ripple maps
+- Macro context using World Bank indicators
+- Event-watch signals for supply-chain, central-bank, regulation, trade, and geopolitical risks
+- Persistent file-based H2 database at `./data/ripplelens`
+- Confidence labels and financial-advice disclaimer
 
-- It is made for Spring Boot.
-- It is easier for beginners to run and debug Java projects.
-- It understands Maven projects.
-- It gives you buttons for running the app instead of requiring many terminal commands.
+## APIs Used
 
-Use **VS Code later** if you build a bigger frontend with React.
+- Binance Spot API for live crypto prices; CoinGecko Simple Price API as fallback.
+- Frankfurter API for no-key currency exchange rates.
+- ExchangeRate API for no-key UAE dirham rates.
+- Gold API for no-key gold, silver, copper, platinum, and palladium prices.
+- World Bank API for no-key macroeconomic indicators.
 
-## 2. Open The Project In Spring Tools
+RippleLens maps the app symbol `XCU` to Gold API's copper symbol `HG` so the UI can keep one consistent internal symbol.
 
-1. Open Spring Tools for Eclipse.
-2. Click `File`.
-3. Click `Import`.
-4. Choose `Maven`.
-5. Choose `Existing Maven Projects`.
-6. Select this folder:
+## Important Endpoints
 
-   `/Users/lucasgergi/Documents/intern RippleLens`
+```text
+GET /api/assets
+GET /api/assets/category/METAL
+GET /api/assets/category/CRYPTOCURRENCY
+GET /api/assets/category/CURRENCY
+GET /api/assets/BTC/prices
+GET /api/assets/BTC/prices/hourly
+GET /api/live/metals
+GET /api/live/cryptos
+GET /api/live/currencies
+GET /api/live/refresh
+GET /api/insights/BTC?days=7
+GET /api/metals/BTC/ripple-map
+GET /api/intelligence/macro
+GET /api/intelligence/macro/BTC
+GET /api/intelligence/events/BTC
+```
 
-7. Click `Finish`.
-8. Wait until dependencies finish downloading.
-
-## 3. Run The App
+## How To Run
 
 In Spring Tools:
 
-1. Open `src/main/java/com/ripplelens/RippleLensApplication.java`.
+1. Open `RippleLensApplication.java`.
 2. Right-click inside the file.
-3. Click `Run As`.
-4. Click `Spring Boot App`.
+3. Choose `Run As > Spring Boot App`.
+4. Open `http://localhost:8080`.
 
-Then open this in your browser:
+From terminal:
 
-`http://localhost:8080`
-
-## Deploy Online
-
-For online deployment, use the Render setup in [DEPLOYMENT.md](DEPLOYMENT.md).
-
-The project now includes:
-
-- `Dockerfile`
-- `render.yaml`
-- `.dockerignore`
-- `.env.example`
-- `src/main/resources/application-prod.properties`
-
-Render is the recommended free option because it can run the full Spring Boot app, including the API and the frontend.
-
-## 4. Try The API
-
-Open these links after the app starts:
-
-- `http://localhost:8080/api/metals`
-- `http://localhost:8080/api/currencies/top`
-- `http://localhost:8080/api/cryptos/top`
-- `http://localhost:8080/api/assets/XAU/prices`
-- `http://localhost:8080/api/assets/XAU/insight`
-- `http://localhost:8080/api/metals/XAU/money-pressure`
-
-## 5. What Each Folder Does
-
-```text
-src/main/java/com/ripplelens
-  RippleLensApplication.java        Starts the app and creates fallback demo data
-  asset/                            Metals, fiat currencies, cryptos
-  marketdata/                       Live API clients and stored-data fallback
-  price/                            Historical price points
-  insight/                          Explanation and Money Pressure logic
-  api/                              REST API endpoints
-  web/                              Web page controller
-
-src/main/resources
-  templates/index.html              Main page
-  static/styles.css                 Page design
-  static/app.js                     Frontend logic
-  application.properties            App configuration and database settings
+```bash
+./mvnw spring-boot:run
 ```
 
-## 6. Beginner Development Roadmap
+The database is now persistent. Restarting the app keeps stored observations in the local `data` folder.
 
-### Step 1: Understand The MVP
+## Project Explanation
 
-Goal: know what the app already does.
-
-Read these files in this order:
-
-1. `RippleLensApplication.java`
-2. `Asset.java`
-3. `PricePoint.java`
-4. `RippleLensApiController.java`
-5. `InsightService.java`
-6. `index.html`
-7. `app.js`
-
-### Step 2: Add More Metals
-
-Add metals such as copper, nickel, lithium, zinc, and aluminum inside `RippleLensApplication.java`.
-
-Example:
-
-```java
-Asset copper = assets.save(new Asset("XCU", "Copper", AssetType.METAL, "Industrial metal linked to construction and electrification"));
-```
-
-Then add it to the `allAssets` list and add a base price in `seedPriceSeries`.
-
-### Step 3: Improve Real Market Data
-
-The app now tries live APIs before falling back to stored demo rows:
-
-- Binance Spot API for crypto history
-- CoinGecko as crypto fallback
-- Frankfurter for fiat currency history
-- Gold API for latest metal prices
-
-Next improvement: add a paid or authenticated commodity provider if you need full historical metal time series instead of latest live metal prices plus stored chart history.
-
-### Step 4: Add Real Currency Conversion
-
-Recommended API:
-
-- Frankfurter
-- ExchangeRate.host
-- OpenExchangeRates
-
-First goal:
-
-Show gold price in USD, EUR, GBP, JPY, CHF, CAD, AUD, CNY, INR, and BRL.
-
-### Step 5: Add Crypto Prices
-
-Recommended API:
-
-- Binance Spot API
-- CoinGecko
-
-First goal:
-
-Show whether crypto risk appetite is rising or falling compared to metals.
-
-### Step 6: Add Economic Indicators
-
-Recommended API:
-
-- FRED
-- World Bank
-
-Start with:
-
-- Inflation
-- Interest rates
-- Oil price
-- USD strength
-
-### Step 7: Add Global Events
-
-Recommended API:
-
-- GDELT
-
-Track keywords:
-
-- mining strike
-- sanctions
-- war
-- export ban
-- inflation
-- central bank
-- energy shortage
-
-### Step 8: Build The Causal Ripple Map
-
-This is the feature that makes RippleLens special.
+RippleLens is not a trading-advice app. It is an economic intelligence tool. It helps users understand possible relationships between asset prices, monetary conditions, risk appetite, industrial demand, and consumer/business consequences.
 
 Example:
 
 ```text
-Mining strike in South Africa
-  -> platinum supply risk increases
-  -> platinum price pressure increases
-  -> auto catalyst costs may rise
-  -> vehicle production cost risk increases
+Bitcoin decreased over the selected window. RippleLens investigates crypto risk appetite and liquidity expectations as possible drivers, then highlights consequences for broader speculative sentiment.
 ```
 
-### Step 9: Add AI Carefully
+## Trust And Safety
 
-AI should explain, not predict with certainty.
+RippleLens avoids guaranteed investment predictions. Its explanations are educational, rule-based, and labeled with confidence levels. The app should always separate:
 
-Every AI result must include:
-
+- observed price movement
 - possible causes
-- confidence
-- sources
-- disclaimer
-
-Never write:
-
-```text
-Gold will definitely rise.
-```
-
-Write:
-
-```text
-Gold may be rising because real yields fell and geopolitical risk increased. Confidence: medium.
-```
-
-## 7. Fastest Path To Finish A Student Project
-
-Build only these features first:
-
-1. Login is optional, skip it at first.
-2. Keep H2 database at first, skip PostgreSQL until later.
-3. Keep stored demo data as a fallback.
-4. Build the web page.
-5. Add one real API.
-6. Add one explanation feature.
-7. Add one chart.
-8. Add the Money Pressure Index.
-9. Add a final report/export page if needed.
-
-This gives you a complete project faster than trying to build a huge fintech platform immediately.
-
-## 8. Final Presentation Explanation
-
-Use this sentence:
-
-> RippleLens is not a price tracker. It is an economic intelligence platform that explains why metals move by connecting commodities, currencies, crypto, inflation, and global events.
+- possible consequences
+- uncertainty
+- data source
