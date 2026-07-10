@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RippleLens</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="shell">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Metals · Currencies · Crypto · Macro Signals</p>
+            <h1>RippleLens</h1>
+            <p class="subtitle">Explain why metal prices move, then trace the economic consequences.</p>
+        </div>
+        <div class="status">
+            <span class="dot"></span>
+            <span id="dataStatus">Checking data source...</span>
+        </div>
+    </section>
+
+    <section class="toolbar">
+        <label for="metalSelect">Metal</label>
+        <select id="metalSelect">
+            <option value="XAU">Gold</option>
+            <option value="XAG">Silver</option>
+            <option value="XPT">Platinum</option>
+            <option value="XPD">Palladium</option>
+        </select>
+        <button id="loadButton">Analyze</button>
+    </section>
+
+    <section class="grid">
+        <article class="panel">
+            <h2>Price Movement</h2>
+            <div id="priceSummary" class="big-number">Loading...</div>
+            <canvas id="priceChart" width="760" height="260"></canvas>
+        </article>
+
+        <article class="panel">
+            <h2>Why It May Be Moving</h2>
+            <ul id="causes"></ul>
+        </article>
+
+        <article class="panel">
+            <h2>Possible Consequences</h2>
+            <ul id="consequences"></ul>
+        </article>
+
+        <article class="panel">
+            <h2>Money Pressure Index</h2>
+            <p id="moneyPressure"></p>
+            <div class="meters">
+                <div><span>Metal momentum</span><progress id="metalMomentum" max="100"></progress></div>
+                <div><span>Crypto risk</span><progress id="cryptoRisk" max="100"></progress></div>
+                <div><span>Currency stress</span><progress id="currencyStress" max="100"></progress></div>
+            </div>
+        </article>
+
+        <article class="panel wide">
+            <h2>Causal Ripple Map</h2>
+            <p id="rippleTitle" class="muted"></p>
+            <div id="rippleMap" class="ripple-map"></div>
+        </article>
+    </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

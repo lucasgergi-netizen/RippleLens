@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+.settings
+target
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example

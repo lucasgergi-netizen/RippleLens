@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ripplelens
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: H2_CONSOLE_ENABLED
+        value: "false"
