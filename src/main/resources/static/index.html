@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>RippleLens</title>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PPSSNQW9TR"></script>
     <script>
@@ -18,13 +18,18 @@
 </head>
 <body>
 <div class="app-shell">
-    <aside class="side-rail">
-        <div class="brand-block">
-            <div class="brand-mark">RL</div>
-            <div>
-                <strong>RippleLens</strong>
-                <span>Economic intelligence terminal</span>
+    <aside id="sideRail" class="side-rail" aria-label="RippleLens navigation">
+        <div class="rail-header">
+            <div class="brand-block">
+                <div class="brand-mark">RL</div>
+                <div>
+                    <strong>RippleLens</strong>
+                    <span>Economic intelligence terminal</span>
+                </div>
             </div>
+            <button id="mobileMenuCloseButton" type="button" class="mobile-menu-close" aria-label="Close navigation">
+                <span aria-hidden="true"></span>
+            </button>
         </div>
 
         <div class="rail-card auth-card">
@@ -87,10 +92,14 @@
             <div id="watchlistItems" class="watchlist-items">No saved assets yet.</div>
         </div>
     </aside>
+    <button id="mobileMenuBackdrop" type="button" class="mobile-menu-backdrop" aria-label="Close navigation" hidden></button>
 
     <main class="workspace">
         <header class="topbar">
-            <div>
+            <button id="mobileMenuButton" type="button" class="mobile-menu-button" aria-label="Open navigation" aria-controls="sideRail" aria-expanded="false">
+                <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+            </button>
+            <div class="topbar-title">
                 <span class="topbar-kicker">Spring Boot fintech MVP</span>
                 <strong>Global asset pressure monitor</strong>
             </div>

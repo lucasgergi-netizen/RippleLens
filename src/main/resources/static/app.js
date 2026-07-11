@@ -125,6 +125,11 @@ const welcomePreference = document.querySelector("#welcomePreference");
 const preferenceStatus = document.querySelector("#preferenceStatus");
 const workspace = document.querySelector(".workspace");
 const sideNavLinks = document.querySelectorAll(".side-nav a");
+const sideRail = document.querySelector("#sideRail");
+const mobileMenuButton = document.querySelector("#mobileMenuButton");
+const mobileMenuCloseButton = document.querySelector("#mobileMenuCloseButton");
+const mobileMenuBackdrop = document.querySelector("#mobileMenuBackdrop");
+const mobileNavMediaQuery = window.matchMedia("(max-width: 900px)");
 const supportedAlertTypes = [
     "PRICE_ABOVE",
     "PRICE_BELOW",
@@ -168,6 +173,7 @@ let demoIndex = 0;
 let authUser = { authenticated: false, fullName: "Guest", email: null, sessionMode: "Guest mode" };
 let authMode = "login";
 let userWorkspace = null;
+let lastMobileNavFocus = null;
 
 categoryButtons.forEach((button) => {
     button.addEventListener("click", async () => {
@@ -208,9 +214,18 @@ analyzeButton.addEventListener("click", () => analyzeAsset(assetSelect.value));
 compareButton.addEventListener("click", () => compareSelectedAsset());
 clearCompareButton.addEventListener("click", () => clearComparison());
 watchButton.addEventListener("click", () => toggleCurrentWatchlistAsset());
-openLoginButton.addEventListener("click", () => openAuthModal("login"));
-openRegisterButton.addEventListener("click", () => openAuthModal("register"));
-continueGuestSidebarButton.addEventListener("click", () => dismissWelcomeGate());
+openLoginButton.addEventListener("click", () => {
+    closeMobileNavigation(false);
+    openAuthModal("login");
+});
+openRegisterButton.addEventListener("click", () => {
+    closeMobileNavigation(false);
+    openAuthModal("register");
+});
+continueGuestSidebarButton.addEventListener("click", () => {
+    closeMobileNavigation(false);
+    dismissWelcomeGate();
+});
 accountProfileButton.addEventListener("click", () => toggleAccountProfileMenu());
 profileAvatarButton.addEventListener("click", () => toggleAccountProfileMenu());
 welcomeLoginButton.addEventListener("click", () => openAuthModal("login"));
@@ -251,7 +266,24 @@ portfolioUseSelectedButton.addEventListener("click", () => useSelectedAssetForPo
 setAlertButton.addEventListener("click", () => openAlertPanel());
 addAlertButton.addEventListener("click", () => addCurrentAlert());
 cancelAlertEditButton.addEventListener("click", () => resetAlertForm());
-demoModeButton.addEventListener("click", () => openDataStatusPanel());
+demoModeButton.addEventListener("click", () => {
+    closeMobileNavigation(false);
+    openDataStatusPanel();
+});
+mobileMenuButton.addEventListener("click", () => {
+    if (sideRail.classList.contains("mobile-open")) {
+        closeMobileNavigation();
+    } else {
+        openMobileNavigation();
+    }
+});
+mobileMenuCloseButton.addEventListener("click", () => closeMobileNavigation());
+mobileMenuBackdrop.addEventListener("click", () => closeMobileNavigation());
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && sideRail.classList.contains("mobile-open")) {
+        closeMobileNavigation();
+    }
+});
 setupSideNavigation();
 alertFilters.forEach((button) => {
     button.addEventListener("click", () => {
@@ -264,6 +296,9 @@ alertFilters.forEach((button) => {
 priceChart.addEventListener("mousemove", handleChartHover);
 priceChart.addEventListener("mouseleave", clearChartHover);
 window.addEventListener("resize", () => {
+    if (!mobileNavMediaQuery.matches) {
+        closeMobileNavigation(false);
+    }
     if (currentAsset) {
         renderCurrentChart();
     }
@@ -1777,6 +1812,33 @@ function setActiveCategoryButton(category) {
     });
 }
 
+function openMobileNavigation() {
+    if (!mobileNavMediaQuery.matches) {
+        return;
+    }
+
+    lastMobileNavFocus = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : mobileMenuButton;
+    sideRail.classList.add("mobile-open");
+    document.body.classList.add("mobile-nav-open");
+    mobileMenuBackdrop.hidden = false;
+    mobileMenuButton.setAttribute("aria-expanded", "true");
+    window.requestAnimationFrame(() => mobileMenuCloseButton.focus({ preventScroll: true }));
+}
+
+function closeMobileNavigation(restoreFocus = true) {
+    const wasOpen = sideRail.classList.contains("mobile-open");
+    sideRail.classList.remove("mobile-open");
+    document.body.classList.remove("mobile-nav-open");
+    mobileMenuBackdrop.hidden = true;
+    mobileMenuButton.setAttribute("aria-expanded", "false");
+
+    if (restoreFocus && wasOpen && lastMobileNavFocus instanceof HTMLElement) {
+        window.requestAnimationFrame(() => lastMobileNavFocus.focus({ preventScroll: true }));
+    }
+}
+
 function setupSideNavigation() {
     sideNavLinks.forEach((link) => {
         link.addEventListener("click", (event) => {
@@ -1787,6 +1849,7 @@ function setupSideNavigation() {
             }
 
             setActiveNavLink(link);
+            closeMobileNavigation(false);
             scrollWorkspaceToSection(target, "smooth");
             window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${link.getAttribute("href")}`);
         });
