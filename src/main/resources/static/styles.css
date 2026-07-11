@@ -1081,10 +1081,6 @@ ul {
     will-change: transform;
 }
 
-.market-tape:hover .market-tape-track {
-    animation-play-state: paused;
-}
-
 .ticker-group {
     display: flex;
     flex: 0 0 auto;
