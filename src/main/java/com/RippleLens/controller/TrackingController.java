@@ -20,6 +20,7 @@ import com.RippleLens.model.AlertStatus;
 import com.RippleLens.service.TrackingService;
 import com.RippleLens.watchlist.CreateWatchlistItemRequest;
 import com.RippleLens.watchlist.WatchlistItemResponse;
+import jakarta.validation.Valid;
 
 @RestController
 public class TrackingController {
@@ -37,7 +38,7 @@ public class TrackingController {
 
     @PostMapping("/api/watchlist")
     @ResponseStatus(HttpStatus.CREATED)
-    public WatchlistItemResponse addWatchlistItem(@RequestBody CreateWatchlistItemRequest request) {
+    public WatchlistItemResponse addWatchlistItem(@Valid @RequestBody CreateWatchlistItemRequest request) {
         return trackingService.addWatchlistItem(request);
     }
 
@@ -56,12 +57,12 @@ public class TrackingController {
 
     @PostMapping("/api/alerts")
     @ResponseStatus(HttpStatus.CREATED)
-    public AlertResponse createAlert(@RequestBody CreateAlertRequest request) {
+    public AlertResponse createAlert(@Valid @RequestBody CreateAlertRequest request) {
         return trackingService.createAlert(request);
     }
 
     @PatchMapping("/api/alerts/{id}")
-    public AlertResponse updateAlert(@PathVariable Long id, @RequestBody UpdateAlertRequest request) {
+    public AlertResponse updateAlert(@PathVariable Long id, @Valid @RequestBody UpdateAlertRequest request) {
         return trackingService.updateAlert(id, request);
     }
 

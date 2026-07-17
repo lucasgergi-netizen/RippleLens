@@ -105,6 +105,16 @@ const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
 const loginButton = document.querySelector("#loginButton");
 const registerButton = document.querySelector("#registerButton");
+const forgotPasswordButton = document.querySelector("#forgotPasswordButton");
+const forgotPasswordForm = document.querySelector("#forgotPasswordForm");
+const recoveryEmail = document.querySelector("#recoveryEmail");
+const sendResetLinkButton = document.querySelector("#sendResetLinkButton");
+const cancelRecoveryButton = document.querySelector("#cancelRecoveryButton");
+const resetPasswordForm = document.querySelector("#resetPasswordForm");
+const newPassword = document.querySelector("#newPassword");
+const confirmNewPassword = document.querySelector("#confirmNewPassword");
+const resetPasswordButton = document.querySelector("#resetPasswordButton");
+const authSwitch = document.querySelector("#authSwitch");
 const logoutButton = document.querySelector("#logoutButton");
 const authMessage = document.querySelector("#authMessage");
 const workspaceMini = document.querySelector("#workspaceMini");
@@ -137,6 +147,8 @@ const supportedAlertTypes = [
     "PERCENT_DECREASE_REACHES"
 ];
 
+const recoveryRouteRequested = window.location.hash.startsWith("#reset=");
+let activeResetToken = consumeResetTokenFromRoute();
 const initialRoute = readRouteState();
 
 let currentCategory = initialRoute.category ?? "METAL";
@@ -240,6 +252,10 @@ authModal.addEventListener("click", (event) => {
 authSwitchButton.addEventListener("click", () => openAuthModal(authMode === "login" ? "register" : "login"));
 loginButton.addEventListener("click", () => loginUser());
 registerButton.addEventListener("click", () => registerUser());
+forgotPasswordButton.addEventListener("click", () => openAuthModal("forgot"));
+sendResetLinkButton.addEventListener("click", () => requestPasswordReset());
+cancelRecoveryButton.addEventListener("click", () => openAuthModal("login"));
+resetPasswordButton.addEventListener("click", () => resetPassword());
 logoutButton.addEventListener("click", () => logoutUser());
 document.addEventListener("click", (event) => {
     if (!accountProfileMenu || accountProfileMenu.hidden) {
@@ -325,6 +341,7 @@ async function start() {
     }
     connectLivePriceStream();
     startProviderHealthMonitor();
+    openResetFormFromRoute();
 }
 
 async function loadAuthUser() {
@@ -344,11 +361,72 @@ async function loginUser() {
 }
 
 async function registerUser() {
-    await submitAuth("/api/auth/register", {
-        fullName: authName.value,
-        email: authEmail.value,
-        password: authPassword.value
-    }, "Account created.");
+    try {
+        const response = await fetchJson("/api/auth/register", jsonOptions("POST", {
+            fullName: authName.value,
+            email: authEmail.value,
+            password: authPassword.value
+        }));
+        authPassword.value = "";
+        openAuthModal("login");
+        showAuthMessage(response.message);
+    } catch (error) {
+        showAuthMessage(error.message, true);
+    }
+}
+
+async function requestPasswordReset() {
+    try {
+        const response = await fetchJson("/api/auth/forgot-password", jsonOptions("POST", { email: recoveryEmail.value }));
+        showAuthMessage(response.message);
+        openAuthModal("login");
+    } catch (error) {
+        showAuthMessage(error.message, true);
+    }
+}
+
+async function resetPassword() {
+    const token = resetTokenFromRoute();
+    if (!token) {
+        showAuthMessage("This reset link is invalid or expired.", true);
+        return;
+    }
+    if (newPassword.value !== confirmNewPassword.value) {
+        showAuthMessage("The passwords do not match.", true);
+        return;
+    }
+    try {
+        const response = await fetchJson("/api/auth/reset-password", jsonOptions("POST", {
+            token,
+            newPassword: newPassword.value
+        }));
+        newPassword.value = "";
+        confirmNewPassword.value = "";
+        activeResetToken = null;
+        openAuthModal("login");
+        showAuthMessage(response.message);
+    } catch (error) {
+        showAuthMessage(error.message, true);
+    }
+}
+
+function resetTokenFromRoute() {
+    return activeResetToken;
+}
+
+function consumeResetTokenFromRoute() {
+    if (!window.location.hash.startsWith("#reset=")) {
+        return null;
+    }
+    const match = window.location.hash.match(/^#reset=([A-Za-z0-9_-]{32,256})$/);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    return match?.[1] ?? null;
+}
+
+function openResetFormFromRoute() {
+    if (resetTokenFromRoute()) {
+        openAuthModal("reset");
+    }
 }
 
 async function submitAuth(url, payload, successMessage) {
@@ -470,19 +548,32 @@ function dismissWelcomeGate() {
 function openAuthModal(mode = "login") {
     authMode = mode;
     const registerMode = mode === "register";
+    const forgotMode = mode === "forgot";
+    const resetMode = mode === "reset";
     authModal.hidden = false;
-    authModalTitle.textContent = registerMode ? "Create your account" : "Sign in";
+    authModalTitle.textContent = registerMode ? "Create your account" : forgotMode ? "Reset your password" : resetMode ? "Choose a new password" : "Sign in";
     authModalSubtitle.textContent = registerMode
         ? "Save your own Watchlist, Alerts, and Portfolio in RippleLens."
-        : "Access your saved Watchlist, Alerts, and Portfolio.";
+        : forgotMode ? "Enter your email and we will send a short-lived reset link if an account exists."
+            : resetMode ? "The reset link works once and expires after 15 minutes."
+                : "Access your saved Watchlist, Alerts, and Portfolio.";
+    authForms.hidden = forgotMode || resetMode;
+    forgotPasswordForm.hidden = !forgotMode;
+    resetPasswordForm.hidden = !resetMode;
+    authSwitch.hidden = forgotMode || resetMode;
     authName.hidden = !registerMode;
     authNameLabel.hidden = !registerMode;
     loginButton.hidden = registerMode;
     registerButton.hidden = !registerMode;
+    forgotPasswordButton.hidden = registerMode;
     authSwitchText.textContent = registerMode ? "Already have an account?" : "Don't have an account?";
     authSwitchButton.textContent = registerMode ? "Sign in" : "Register";
     authPassword.setAttribute("autocomplete", registerMode ? "new-password" : "current-password");
-    window.setTimeout(() => (registerMode ? authName : authEmail).focus(), 0);
+    window.setTimeout(() => {
+        if (forgotMode) recoveryEmail.focus();
+        else if (resetMode) newPassword.focus();
+        else (registerMode ? authName : authEmail).focus();
+    }, 0);
 }
 
 function closeAuthModal() {
@@ -567,9 +658,9 @@ function renderUserWorkspace() {
     workspaceMini.innerHTML = `
         <div class="account-mini-status">${userWorkspace.authenticated ? "Signed in workspace" : "Guest workspace"}</div>
         <div class="account-mini-grid">
-            <span><strong>${userWorkspace.watchlistCount}</strong><small>Watchlist</small></span>
-            <span><strong>${userWorkspace.activeAlertCount}</strong><small>Active alerts</small></span>
-            <span><strong>${userWorkspace.portfolioHoldingCount}</strong><small>Holdings</small></span>
+            <span><strong>${Number(userWorkspace.watchlistCount) || 0}</strong><small>Watchlist</small></span>
+            <span><strong>${Number(userWorkspace.activeAlertCount) || 0}</strong><small>Active alerts</small></span>
+            <span><strong>${Number(userWorkspace.portfolioHoldingCount) || 0}</strong><small>Holdings</small></span>
         </div>
     `;
     renderRecentAssets(userWorkspace.recentAssets ?? []);
@@ -581,9 +672,9 @@ function renderUserWorkspace() {
 function workspaceStat(label, value, detail) {
     return `
         <div class="workspace-stat">
-            <span>${label}</span>
-            <strong>${value}</strong>
-            <small>${detail}</small>
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <small>${escapeHtml(detail)}</small>
         </div>
     `;
 }
@@ -604,8 +695,8 @@ function renderRecentAssets(recentAssets) {
         button.dataset.liveSymbol = asset.symbol;
         button.innerHTML = `
             <span>
-                <strong>${asset.symbol} - ${asset.name}</strong>
-                <small>${formatCategory(asset.category)} · ${formatDateTime(asset.viewedAt)}</small>
+                <strong>${escapeHtml(asset.symbol)} - ${escapeHtml(asset.name)}</strong>
+                <small>${escapeHtml(formatCategory(asset.category))} · ${escapeHtml(formatDateTime(asset.viewedAt))}</small>
             </span>
             <span class="${Number(asset.dailyChangePercentage) >= 0 ? "change-up" : "change-down"}">${formatSigned(asset.dailyChangePercentage)}%</span>
         `;
@@ -653,8 +744,8 @@ function renderAlertNotificationCenter() {
         row.dataset.liveSymbol = alert.symbol;
         row.innerHTML = `
             <span>
-                <strong>${alert.customName || `${alert.symbol} alert reached`}</strong>
-                <small>${alert.lastNotification || alert.message}</small>
+                <strong>${escapeHtml(alert.customName || `${alert.symbol} alert reached`)}</strong>
+                <small>${escapeHtml(alert.lastNotification || alert.message)}</small>
             </span>
             <em>${formatDateTime(alert.triggeredAt ?? alert.createdAt)}</em>
         `;
@@ -697,10 +788,11 @@ function renderWorkspaceMarketBrief() {
     }
 
     items.forEach((item) => {
-        const row = document.createElement(item.url ? "a" : "div");
+        const safeUrl = safeExternalUrl(item.url);
+        const row = document.createElement(safeUrl ? "a" : "div");
         row.className = "workspace-news-row";
-        if (item.url) {
-            row.href = item.url;
+        if (safeUrl) {
+            row.href = safeUrl;
             row.target = "_blank";
             row.rel = "noopener noreferrer";
         }
@@ -783,8 +875,11 @@ async function recordRecentAsset(symbol) {
 }
 
 async function refreshStoredLiveData() {
+    if (!authUser?.authenticated) {
+        return;
+    }
     try {
-        await fetchJson("/api/live/refresh");
+        await fetchJson("/api/live/refresh", { method: "POST" });
     } catch (error) {
         liveStatus.textContent = "Live refresh unavailable. Using stored fallback data.";
     }
@@ -820,32 +915,43 @@ async function loadProviderHealth() {
 
 function renderProviderHealth(health) {
     const providers = health.providers ?? [];
-    const overallClass = String(health.overallStatus || "DEGRADED").toLowerCase();
+    const overallClass = providerStatusClass(health.overallStatus);
     providerHealthGrid.innerHTML = `
         <div class="provider-health-summary ${overallClass}">
             <span>Provider health</span>
-            <strong>${health.availableProviders}/${health.providerCount} available</strong>
+            <strong>${Number(health.availableProviders) || 0}/${Number(health.providerCount) || 0} available</strong>
             <small>${formatHealthTime(health.checkedAt)} · last refresh ${formatHealthTime(health.lastIngestionRefreshAt)}</small>
         </div>
     `;
 
     providers.forEach((provider) => {
-        const statusClass = String(provider.status || "UNAVAILABLE").toLowerCase();
+        const statusClass = providerStatusClass(provider.status);
         const card = document.createElement("div");
         card.className = `provider-health-card ${statusClass}`;
         card.innerHTML = `
             <div>
-                <strong>${provider.provider}</strong>
-                <span>${provider.category}</span>
+                <strong>${escapeHtml(provider.provider)}</strong>
+                <span>${escapeHtml(provider.category)}</span>
             </div>
             <div class="provider-health-meta">
-                <b>${formatProviderStatus(provider.status)}</b>
-                <small>${provider.latencyMs}ms</small>
+                <b>${escapeHtml(formatProviderStatus(provider.status))}</b>
+                <small>${Number(provider.latencyMs) || 0}ms</small>
             </div>
-            <p>${provider.detail}</p>
+            <p>${escapeHtml(provider.detail)}</p>
         `;
         providerHealthGrid.appendChild(card);
     });
+}
+
+function providerStatusClass(status) {
+    const normalized = String(status || "UNAVAILABLE").toUpperCase();
+    if (normalized === "AVAILABLE") {
+        return "available";
+    }
+    if (normalized === "DEGRADED") {
+        return "degraded";
+    }
+    return "unavailable";
 }
 
 function formatProviderStatus(status) {
@@ -1312,23 +1418,23 @@ function renderMarketInsight(insight) {
     insightSignalGrid.innerHTML = `
         <div class="insight-signal ${sentiment.className}">
             <span>Current direction</span>
-            <strong>${sentiment.label}</strong>
-            <small>${sentiment.description}</small>
+            <strong>${escapeHtml(sentiment.label)}</strong>
+            <small>${escapeHtml(sentiment.description)}</small>
         </div>
         <div class="insight-signal">
-            <span>${signalWindow}</span>
+            <span>${escapeHtml(signalWindow)}</span>
             <strong>${formatSigned(change)}%</strong>
-            <small>${currentAsset.symbol} ${insight.movementDirection ?? "moved"} over selected data.</small>
+            <small>${escapeHtml(currentAsset.symbol)} ${escapeHtml(insight.movementDirection ?? "moved")} over selected data.</small>
         </div>
         <div class="insight-signal">
             <span>Confidence</span>
-            <strong>${insight.confidence}</strong>
+            <strong>${escapeHtml(insight.confidence)}</strong>
             <small>Based on stored price data and rule/AI analysis.</small>
         </div>
         <div class="insight-signal">
             <span>Top factor</span>
-            <strong>${topFactor}</strong>
-            <small>${factorContextFor(currentAsset)}</small>
+            <strong>${escapeHtml(topFactor)}</strong>
+            <small>${escapeHtml(factorContextFor(currentAsset))}</small>
         </div>
     `;
 
@@ -1339,8 +1445,8 @@ function renderMarketInsight(insight) {
         item.className = "driver-item";
         item.innerHTML = `
             <span>${String(index + 1).padStart(2, "0")}</span>
-            <strong>${driver}</strong>
-            <small>${driverHintFor(currentAsset, driver)}</small>
+            <strong>${escapeHtml(driver)}</strong>
+            <small>${escapeHtml(driverHintFor(currentAsset, driver))}</small>
         `;
         insightDrivers.appendChild(item);
     });
@@ -1350,10 +1456,10 @@ function renderMarketInsight(insight) {
     renderRelatedNewsItems();
 
     qualityStrip.innerHTML = `
-        <div class="quality-item"><strong>Data mode</strong><span>${insight.supportingSignals[0] ?? "Stored observations available"}</span></div>
-        <div class="quality-item"><strong>Analysis type</strong><span>${analysisType}</span></div>
-        <div class="quality-item"><strong>Model</strong><span>${modelName}</span></div>
-        <div class="quality-item"><strong>Confidence</strong><span>${insight.confidence}</span></div>
+        <div class="quality-item"><strong>Data mode</strong><span>${escapeHtml(insight.supportingSignals?.[0] ?? "Stored observations available")}</span></div>
+        <div class="quality-item"><strong>Analysis type</strong><span>${escapeHtml(analysisType)}</span></div>
+        <div class="quality-item"><strong>Model</strong><span>${escapeHtml(modelName)}</span></div>
+        <div class="quality-item"><strong>Confidence</strong><span>${escapeHtml(insight.confidence)}</span></div>
         <div class="quality-item"><strong>Advice status</strong><span>Informational only</span></div>
     `;
 }
@@ -1378,7 +1484,7 @@ async function loadMovementTimeline(symbol) {
         }
         currentMovementTimeline = null;
         movementTimelineMeta.textContent = "Timeline unavailable";
-        movementTimelineList.innerHTML = `<div class="timeline-empty error">Timeline context is unavailable right now. ${error.message}</div>`;
+        movementTimelineList.innerHTML = `<div class="timeline-empty error">Timeline context is unavailable right now. ${escapeHtml(error.message)}</div>`;
     }
 }
 
@@ -1431,9 +1537,10 @@ function createTimelineItem(item) {
     time.textContent = formatTimelineTime(item.timestamp);
     header.append(label, time);
 
-    const title = item.url ? document.createElement("a") : document.createElement("strong");
-    if (item.url) {
-        title.href = item.url;
+    const safeUrl = safeExternalUrl(item.url);
+    const title = safeUrl ? document.createElement("a") : document.createElement("strong");
+    if (safeUrl) {
+        title.href = safeUrl;
         title.target = "_blank";
         title.rel = "noopener noreferrer";
     }
@@ -1505,7 +1612,7 @@ async function renderRelationshipFor(symbol) {
         relationshipSummary.textContent = "Relationship signals are unavailable right now.";
         relationshipGrid.innerHTML = "";
         relationshipHighlights.innerHTML = "";
-        relationshipNotes.innerHTML = `<span>${error.message}</span>`;
+        relationshipNotes.innerHTML = `<span>${escapeHtml(error.message)}</span>`;
     }
 }
 
@@ -1533,8 +1640,8 @@ function renderRelationshipEngine(data) {
     }
 
     relationshipNotes.innerHTML = `
-        ${(data.insights ?? []).map((item) => `<span>${item}</span>`).join("")}
-        <small>${data.disclaimer}</small>
+        ${(data.insights ?? []).map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        <small>${escapeHtml(data.disclaimer)}</small>
     `;
 }
 
@@ -1545,9 +1652,9 @@ function relationshipWindowDays() {
 function relationshipHighlight(label, value, detail) {
     return `
         <div class="relationship-highlight">
-            <span>${label}</span>
-            <strong>${value}</strong>
-            <small>${detail}</small>
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <small>${escapeHtml(detail)}</small>
         </div>
     `;
 }
@@ -1560,8 +1667,8 @@ function createRelationshipCard(item, isTop) {
     card.innerHTML = `
         <div class="relationship-card-header">
             <div>
-                <span>${isTop ? "Strongest link" : item.relationshipType}</span>
-                <strong>${item.symbol} - ${item.name}</strong>
+                <span>${escapeHtml(isTop ? "Strongest link" : item.relationshipType)}</span>
+                <strong>${escapeHtml(item.symbol)} - ${escapeHtml(item.name)}</strong>
             </div>
             <div class="correlation-score">${formatCorrelation(item.correlation)}</div>
         </div>
@@ -1569,15 +1676,15 @@ function createRelationshipCard(item, isTop) {
             <div style="width: ${scoreWidth}%"></div>
         </div>
         <div class="relationship-meta">
-            <span>${item.strength} ${item.direction}</span>
-            <span>${item.pairedObservations} paired days</span>
-            <span>${item.category.toLowerCase().replace("_", " ")}</span>
+            <span>${escapeHtml(item.strength)} ${escapeHtml(item.direction)}</span>
+            <span>${Number(item.pairedObservations) || 0} paired days</span>
+            <span>${escapeHtml(String(item.category || "unknown").toLowerCase().replace("_", " "))}</span>
         </div>
         <div class="relationship-moves">
-            <span>${currentAsset.symbol}: ${formatSigned(item.selectedAssetMovePercentage)}%</span>
-            <span>${item.symbol}: ${formatSigned(item.relatedAssetMovePercentage)}%</span>
+            <span>${escapeHtml(currentAsset.symbol)}: ${formatSigned(item.selectedAssetMovePercentage)}%</span>
+            <span>${escapeHtml(item.symbol)}: ${formatSigned(item.relatedAssetMovePercentage)}%</span>
         </div>
-        <p>${item.explanation}</p>
+        <p>${escapeHtml(item.explanation)}</p>
         ${item.unusualBehavior ? `<div class="relationship-alert">Unusual behavior detected</div>` : ""}
     `;
     return card;
@@ -1645,10 +1752,13 @@ function createNewsItem(news, index) {
     badges.append(createNewsBadge(news.impactLevel || "Medium impact", impactClassFor(news.impactLevel)));
     badges.append(createNewsBadge(news.priceEffect || "Unclear effect", effectClassFor(news.priceEffect)));
 
-    const link = document.createElement("a");
-    link.href = news.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
+    const safeUrl = safeExternalUrl(news.url);
+    const link = document.createElement(safeUrl ? "a" : "strong");
+    if (safeUrl) {
+        link.href = safeUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+    }
     link.textContent = news.title;
     const meta = document.createElement("small");
     meta.textContent = `${news.source || "NewsAPI.org"} · ${formatNewsTime(news.publishedAt)}${news.sourceCountry ? ` · ${news.sourceCountry}` : ""}`;
@@ -1704,9 +1814,9 @@ function createSignalNewsItem(signal, index) {
     row.innerHTML = `
         <div class="news-marker">${index + 1}</div>
         <div>
-            <strong>${signal.title}</strong>
-            <p>${signal.description}</p>
-            <small>${signal.confidence ?? "medium"} confidence · ${signal.sourceType ?? "RippleLens signal"} · fallback signal</small>
+            <strong>${escapeHtml(signal.title)}</strong>
+            <p>${escapeHtml(signal.description)}</p>
+            <small>${escapeHtml(signal.confidence ?? "medium")} confidence · ${escapeHtml(signal.sourceType ?? "RippleLens signal")} · fallback signal</small>
         </div>
     `;
     return row;
@@ -1739,9 +1849,9 @@ function renderLegacySignalPreview() {
         row.innerHTML = `
             <div class="news-marker">${index + 1}</div>
             <div>
-                <strong>${signal.title}</strong>
-                <p>${signal.description}</p>
-                <small>${signal.confidence ?? "medium"} confidence · ${signal.sourceType ?? "RippleLens signal"} · now</small>
+                <strong>${escapeHtml(signal.title)}</strong>
+                <p>${escapeHtml(signal.description)}</p>
+                <small>${escapeHtml(signal.confidence ?? "medium")} confidence · ${escapeHtml(signal.sourceType ?? "RippleLens signal")} · now</small>
             </div>
         `;
         relatedNewsList.appendChild(row);
@@ -1749,12 +1859,18 @@ function renderLegacySignalPreview() {
 }
 
 async function fetchJson(url, options = {}) {
-    const response = await fetch(url, options);
+    const requestOptions = { credentials: "same-origin", ...options };
+    const method = (requestOptions.method ?? "GET").toUpperCase();
+    if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const csrfToken = readCookie("__Host-XSRF-TOKEN") ?? readCookie("XSRF-TOKEN") ?? "";
+        requestOptions.headers = { ...(requestOptions.headers ?? {}), "X-XSRF-TOKEN": csrfToken };
+    }
+    const response = await fetch(url, requestOptions);
     if (!response.ok) {
         let message = `Request failed: ${url}`;
         try {
             const error = await response.json();
-            message = error.detail ?? error.message ?? message;
+            message = error.error ?? error.detail ?? error.message ?? message;
         } catch (parseError) {
             message = response.statusText || message;
         }
@@ -1869,7 +1985,9 @@ function setupSideNavigation() {
         });
     }
 
-    const initialSection = window.location.hash ? document.querySelector(window.location.hash) : null;
+    const initialLink = Array.from(sideNavLinks)
+        .find((link) => link.getAttribute("href") === window.location.hash);
+    const initialSection = initialLink ? document.querySelector(initialLink.getAttribute("href")) : null;
     if (initialSection) {
         scrollWorkspaceToSection(initialSection, "auto");
     } else {
@@ -1981,11 +2099,11 @@ function renderWatchlist() {
         row.dataset.liveSymbol = asset.symbol;
         row.innerHTML = `
             <button type="button" class="watchlist-button watchlist-main">
-                <strong>${asset.symbol} - ${asset.assetName}</strong>
-                <small>${formatCategory(asset.category)} · ${formatPrice(asset.currentPrice, asset.quoteCurrency)} · ${formatSigned(asset.dailyChangePercentage)}%</small>
+                <strong>${escapeHtml(asset.symbol)} - ${escapeHtml(asset.assetName)}</strong>
+                <small>${escapeHtml(formatCategory(asset.category))} · ${escapeHtml(formatPrice(asset.currentPrice, asset.quoteCurrency))} · ${formatSigned(asset.dailyChangePercentage)}%</small>
             </button>
             <div class="watchlist-actions">
-                <button type="button" class="mini-button danger" data-remove-watch="${asset.id}">Remove</button>
+                <button type="button" class="mini-button danger" data-remove-watch="${Number(asset.id)}">Remove</button>
             </div>
         `;
         row.querySelector(".watchlist-main").addEventListener("click", () => openAsset(asset.symbol, asset.category));
@@ -2111,8 +2229,8 @@ function renderPortfolio() {
 function portfolioStat(label, value, className = "") {
     return `
         <div class="portfolio-stat">
-            <span>${label}</span>
-            <strong class="${className}">${value}</strong>
+            <span>${escapeHtml(label)}</span>
+            <strong class="${className === "change-up" || className === "change-down" || className.startsWith("risk-") ? className : ""}">${escapeHtml(value)}</strong>
         </div>
     `;
 }
@@ -2158,10 +2276,10 @@ function renderPortfolioRisk(data) {
     portfolioRiskPanel.innerHTML = `
         <div>
             <span>Risk concentration</span>
-            <strong>${data.riskLevel ?? "No holdings"}</strong>
+            <strong>${escapeHtml(data.riskLevel ?? "No holdings")}</strong>
         </div>
-        <p>${data.riskWarning ?? "Add holdings to see risk context."}</p>
-        <small>Exposure: ${data.exposureSummary ?? "No tracked exposure yet."}</small>
+        <p>${escapeHtml(data.riskWarning ?? "Add holdings to see risk context.")}</p>
+        <small>Exposure: ${escapeHtml(data.exposureSummary ?? "No tracked exposure yet.")}</small>
     `;
 }
 
@@ -2200,8 +2318,8 @@ function renderPortfolioHoldings(data) {
         row.dataset.portfolioId = holding.id;
         row.innerHTML = `
             <div>
-                <strong>${holding.symbol} - ${holding.assetName}</strong>
-                <small>${formatCategory(holding.category)} · ${holding.allocationPercentage}% allocation</small>
+                <strong>${escapeHtml(holding.symbol)} - ${escapeHtml(holding.assetName)}</strong>
+                <small>${escapeHtml(formatCategory(holding.category))} · ${Number(holding.allocationPercentage) || 0}% allocation</small>
             </div>
             <label>
                 <small>Quantity</small>
@@ -2213,20 +2331,20 @@ function renderPortfolioHoldings(data) {
             </label>
             <div>
                 <small>Value</small>
-                <span>${formatPrice(holding.currentValue, "USD")}</span>
+                <span>${escapeHtml(formatPrice(holding.currentValue, "USD"))}</span>
             </div>
             <div>
                 <small>Unrealized P/L</small>
-                <span class="${profitClass}">${formatSignedPrice(holding.unrealizedProfitLoss, "USD")} · ${formatSigned(holding.unrealizedProfitLossPercentage)}%</span>
+                <span class="${profitClass}">${escapeHtml(formatSignedPrice(holding.unrealizedProfitLoss, "USD"))} · ${formatSigned(holding.unrealizedProfitLossPercentage)}%</span>
             </div>
             <div>
                 <small>Daily</small>
-                <span class="${dailyClass}">${formatSignedPrice(holding.dailyChangeAmount, "USD")} · ${formatSigned(holding.dailyChangePercentage)}%</span>
+                <span class="${dailyClass}">${escapeHtml(formatSignedPrice(holding.dailyChangeAmount, "USD"))} · ${formatSigned(holding.dailyChangePercentage)}%</span>
             </div>
             <div class="portfolio-actions">
-                <button type="button" class="mini-button success" data-open-portfolio="${holding.symbol}:${holding.category}">Open</button>
-                <button type="button" class="mini-button" data-update-portfolio="${holding.id}">Update</button>
-                <button type="button" class="mini-button danger" data-delete-portfolio="${holding.id}">Delete</button>
+                <button type="button" class="mini-button success" data-open-portfolio="${escapeHtml(holding.symbol)}:${escapeHtml(holding.category)}">Open</button>
+                <button type="button" class="mini-button" data-update-portfolio="${Number(holding.id)}">Update</button>
+                <button type="button" class="mini-button danger" data-delete-portfolio="${Number(holding.id)}">Delete</button>
             </div>
         `;
         row.querySelector("[data-open-portfolio]").addEventListener("click", () => openAsset(holding.symbol, holding.category));
@@ -2402,24 +2520,27 @@ function renderAlerts() {
 
     alertItems.innerHTML = "";
     visibleAlerts.forEach((alert) => {
+        const statusClass = ["active", "triggered", "disabled"].includes(String(alert.status).toLowerCase())
+            ? String(alert.status).toLowerCase()
+            : "disabled";
         const row = document.createElement("div");
-        row.className = `alert-row ${alert.status.toLowerCase()}`;
+        row.className = `alert-row ${statusClass}`;
         row.innerHTML = `
             <div>
-                <strong>${alert.customName || `${alert.symbol} alert`}</strong>
-                <span class="alert-status ${alert.status.toLowerCase()}">${alert.status}</span>
+                <strong>${escapeHtml(alert.customName || `${alert.symbol} alert`)}</strong>
+                <span class="alert-status ${statusClass}">${escapeHtml(alert.status)}</span>
             </div>
             <div class="alert-meta">
-                <small>${alert.symbol} - ${alert.assetName}</small>
-                <small>${formatAlertType(alert.alertType)} · target ${formatAlertTarget(alert)}</small>
-                <small>Created ${formatDateTime(alert.createdAt)}${alert.triggeredAt ? ` · Triggered ${formatDateTime(alert.triggeredAt)}` : ""}</small>
-                <small>${alert.recurring ? "Recurring" : "One-time"} · ${formatNotificationPreference(alert.notificationPreference)} · ${alert.enabled ? "Enabled" : "Disabled"}</small>
+                <small>${escapeHtml(alert.symbol)} - ${escapeHtml(alert.assetName)}</small>
+                <small>${escapeHtml(formatAlertType(alert.alertType))} · target ${escapeHtml(formatAlertTarget(alert))}</small>
+                <small>Created ${escapeHtml(formatDateTime(alert.createdAt))}${alert.triggeredAt ? ` · Triggered ${escapeHtml(formatDateTime(alert.triggeredAt))}` : ""}</small>
+                <small>${alert.recurring ? "Recurring" : "One-time"} · ${escapeHtml(formatNotificationPreference(alert.notificationPreference))} · ${alert.enabled ? "Enabled" : "Disabled"}</small>
             </div>
             <div class="alert-actions">
-                <button type="button" class="mini-button success" data-open-alert="${alert.symbol}:${alert.category}">Open</button>
-                <button type="button" class="mini-button" data-toggle-alert="${alert.id}">${alert.enabled ? "Disable" : "Enable"}</button>
-                <button type="button" class="mini-button" data-edit-alert="${alert.id}">Edit</button>
-                <button type="button" class="mini-button danger" data-delete-alert="${alert.id}">Delete</button>
+                <button type="button" class="mini-button success" data-open-alert="${escapeHtml(alert.symbol)}:${escapeHtml(alert.category)}">Open</button>
+                <button type="button" class="mini-button" data-toggle-alert="${Number(alert.id)}">${alert.enabled ? "Disable" : "Enable"}</button>
+                <button type="button" class="mini-button" data-edit-alert="${Number(alert.id)}">Edit</button>
+                <button type="button" class="mini-button danger" data-delete-alert="${Number(alert.id)}">Delete</button>
             </div>
         `;
         row.querySelector("[data-open-alert]").addEventListener("click", () => openAsset(alert.symbol, alert.category));
@@ -2606,11 +2727,11 @@ function renderSnapshot(asset) {
     activeAssetSubtitle.textContent = `${formatCategory(asset.category)} · ${source} · ${sign}${change.toFixed(2)}% daily move`;
 
     snapshot.innerHTML = `
-        <div class="price" data-live-symbol="${asset.symbol}"><span>${formatPrice(displayPrice, asset.quoteCurrency)}</span><small>/ ${asset.unit}</small></div>
+        <div class="price" data-live-symbol="${escapeHtml(asset.symbol)}"><span>${escapeHtml(formatPrice(displayPrice, asset.quoteCurrency))}</span><small>/ ${escapeHtml(asset.unit)}</small></div>
         <div class="meta-grid">
             <div class="metric">
                 <span class="metric-label">Category</span>
-                <span class="metric-value">${formatCategory(asset.category)}</span>
+                <span class="metric-value">${escapeHtml(formatCategory(asset.category))}</span>
             </div>
             <div class="metric">
                 <span class="metric-label">Daily Move</span>
@@ -2618,14 +2739,14 @@ function renderSnapshot(asset) {
             </div>
             <div class="metric">
                 <span class="metric-label">Data Source</span>
-                <span class="metric-value">${source}</span>
+                <span class="metric-value">${escapeHtml(source)}</span>
             </div>
             <div class="metric">
                 <span class="metric-label">Symbol</span>
-                <span class="metric-value">${asset.symbol}</span>
+                <span class="metric-value">${escapeHtml(asset.symbol)}</span>
             </div>
         </div>
-        <p class="muted">${asset.description}</p>
+        <p class="muted">${escapeHtml(asset.description)}</p>
     `;
 }
 
@@ -2636,51 +2757,53 @@ function refreshCurrentSnapshot() {
 }
 
 function renderTrustReport(data) {
-    const sourceList = data.sources.length === 0 ? "No source labels yet" : data.sources.join(", ");
+    const sources = Array.isArray(data.sources) ? data.sources : [];
+    const caveats = Array.isArray(data.caveats) ? data.caveats : [];
+    const sourceList = sources.length === 0 ? "No source labels yet" : sources.join(", ");
     const latestObservation = data.latestObservationDate ? formatDateOnly(data.latestObservationDate) : "N/A";
     const scoreClass = trustScoreClass(data.dataTrustScore);
     trustReport.innerHTML = `
         <div class="trust-hero">
             <div>
                 <span class="eyebrow">Reliability Lens</span>
-                <h3>${data.symbol} data confidence</h3>
-                <p>${data.coverageSummary ?? "Coverage summary unavailable."}</p>
+                <h3>${escapeHtml(data.symbol)} data confidence</h3>
+                <p>${escapeHtml(data.coverageSummary ?? "Coverage summary unavailable.")}</p>
             </div>
             <div class="trust-score-ring ${scoreClass}">
-                <strong>${data.dataTrustScore}</strong>
+                <strong>${Number(data.dataTrustScore) || 0}</strong>
                 <span>/100</span>
             </div>
         </div>
         <div class="trust-grid">
             <div class="trust-item">
                 <span>Confidence</span>
-                <strong>${data.confidenceLevel}</strong>
-                <small>${data.confidenceLevel} confidence</small>
+                <strong>${escapeHtml(data.confidenceLevel)}</strong>
+                <small>${escapeHtml(data.confidenceLevel)} confidence</small>
             </div>
             <div class="trust-item">
                 <span>Data Source</span>
-                <strong>${data.latestObservationSource}</strong>
-                <small>${sourceList}</small>
+                <strong>${escapeHtml(data.latestObservationSource)}</strong>
+                <small>${escapeHtml(sourceList)}</small>
             </div>
             <div class="trust-item">
                 <span>Latest observation</span>
-                <strong>${latestObservation}</strong>
-                <small>${data.freshnessStatus ?? "Freshness unknown"}</small>
+                <strong>${escapeHtml(latestObservation)}</strong>
+                <small>${escapeHtml(data.freshnessStatus ?? "Freshness unknown")}</small>
             </div>
             <div class="trust-item">
                 <span>Source Type</span>
-                <strong>${data.sourceMode}</strong>
+                <strong>${escapeHtml(data.sourceMode)}</strong>
                 <small>${data.usesRealApi ? "Live/API-backed source" : "Fallback data active"}</small>
             </div>
         </div>
         <div class="trust-source-strip">
-            <span><strong>${data.realApiObservations ?? 0}</strong> API-backed</span>
-            <span><strong>${data.fallbackObservations ?? 0}</strong> fallback</span>
-            <span><strong>${data.modeledObservations ?? 0}</strong> modeled</span>
-            <span><strong>${data.storedObservations ?? 0}</strong> total points</span>
+            <span><strong>${Number(data.realApiObservations) || 0}</strong> API-backed</span>
+            <span><strong>${Number(data.fallbackObservations) || 0}</strong> fallback</span>
+            <span><strong>${Number(data.modeledObservations) || 0}</strong> modeled</span>
+            <span><strong>${Number(data.storedObservations) || 0}</strong> total points</span>
         </div>
-        <p class="trust-note">${data.recommendation}</p>
-        <ul class="trust-list">${data.caveats.map((item) => `<li>${item}</li>`).join("")}</ul>
+        <p class="trust-note">${escapeHtml(data.recommendation)}</p>
+        <ul class="trust-list">${caveats.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
     `;
 }
 
@@ -2811,7 +2934,7 @@ function createTickerPill(item) {
     pill.dataset.liveSymbol = item.symbol;
     pill.title = `${item.name || item.symbol} · ${item.source || "Latest source"}`;
     pill.innerHTML = `
-        <strong>${item.symbol}</strong>
+        <strong>${escapeHtml(item.symbol)}</strong>
         <span class="ticker-price">${formatPrice(item.price, "USD")}</span>
         <span class="ticker-change ${change >= 0 ? "change-up" : "change-down"}">${sign}${change.toFixed(2)}%</span>
     `;
@@ -2834,9 +2957,9 @@ function renderLiveCryptoStrip(prices) {
         card.className = "live-card";
         card.dataset.liveSymbol = item.symbol;
         card.innerHTML = `
-            <strong>${item.symbol} - ${item.name}</strong>
+            <strong>${escapeHtml(item.symbol)} - ${escapeHtml(item.name)}</strong>
             <div>${formatPrice(item.priceUsd, "USD")}</div>
-            <div class="${change >= 0 ? "change-up" : "change-down"}">${sign}${change.toFixed(2)}% 24h · ${item.source}</div>
+            <div class="${change >= 0 ? "change-up" : "change-down"}">${sign}${change.toFixed(2)}% 24h · ${escapeHtml(item.source)}</div>
         `;
         liveCryptoStrip.appendChild(card);
     });
@@ -2855,9 +2978,9 @@ function renderLiveMetalStrip(prices) {
         card.className = "live-card metal-live-card";
         card.dataset.liveSymbol = item.symbol;
         card.innerHTML = `
-            <strong>${item.symbol} - ${item.name}</strong>
+            <strong>${escapeHtml(item.symbol)} - ${escapeHtml(item.name)}</strong>
             <div>${formatPrice(item.priceUsd, "USD")}</div>
-            <div class="muted">per ${item.unit} · ${item.source}</div>
+            <div class="muted">per ${escapeHtml(item.unit)} · ${escapeHtml(item.source)}</div>
         `;
         liveMetalStrip.appendChild(card);
     });
@@ -2870,9 +2993,9 @@ function renderLiveCurrencyStrip(prices) {
         card.className = "live-card";
         card.dataset.liveSymbol = item.symbol;
         card.innerHTML = `
-            <strong>${item.symbol} - ${item.name}</strong>
+            <strong>${escapeHtml(item.symbol)} - ${escapeHtml(item.name)}</strong>
             <div>${formatPrice(item.usdPrice, "USD")}</div>
-            <div class="muted">USD value · ${item.source}</div>
+            <div class="muted">USD value · ${escapeHtml(item.source)}</div>
         `;
         liveCurrencyStrip.appendChild(card);
     });
@@ -2886,10 +3009,10 @@ function renderMacroContext(data) {
         const card = document.createElement("div");
         card.className = "macro-card";
         card.innerHTML = `
-            <strong>${indicator.name}</strong>
-            <div class="macro-value">${Number(indicator.value).toFixed(2)}${indicator.unit}</div>
-            <div class="muted">${indicator.country} · ${indicator.year} · ${indicator.source}</div>
-            <p>${indicator.interpretation}</p>
+            <strong>${escapeHtml(indicator.name)}</strong>
+            <div class="macro-value">${Number(indicator.value).toFixed(2)}${escapeHtml(indicator.unit)}</div>
+            <div class="muted">${escapeHtml(indicator.country)} · ${escapeHtml(indicator.year)} · ${escapeHtml(indicator.source)}</div>
+            <p>${escapeHtml(indicator.interpretation)}</p>
         `;
         macroStrip.appendChild(card);
     });
@@ -2898,7 +3021,7 @@ function renderMacroContext(data) {
     channelCard.className = "macro-card channel-card";
     channelCard.innerHTML = `
         <strong>Pressure channels</strong>
-        <ul>${data.pressureChannels.map((item) => `<li>${item}</li>`).join("")}</ul>
+        <ul>${data.pressureChannels.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
     `;
     macroStrip.appendChild(channelCard);
 }
@@ -2909,10 +3032,10 @@ function renderEventSignals(signals) {
         const card = document.createElement("div");
         card.className = "event-card";
         card.innerHTML = `
-            <strong>${signal.title}</strong>
-            <p>${signal.description}</p>
-            <div class="muted">Confidence: ${signal.confidence} · ${signal.sourceType}</div>
-            <div class="event-tags">${signal.affectedAreas.map((item) => `<span>${item}</span>`).join("")}</div>
+            <strong>${escapeHtml(signal.title)}</strong>
+            <p>${escapeHtml(signal.description)}</p>
+            <div class="muted">Confidence: ${escapeHtml(signal.confidence)} · ${escapeHtml(signal.sourceType)}</div>
+            <div class="event-tags">${signal.affectedAreas.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>
         `;
         eventSignals.appendChild(card);
     });
@@ -3217,9 +3340,9 @@ function createMovementCardFromDelta(asset, title, delta, basePrice, detail, com
     const card = document.createElement("div");
     card.className = `movement-card ${compact ? "movement-quick" : ""} ${delta >= 0 ? "movement-up" : "movement-down"}`;
     card.innerHTML = `
-        <strong>${title}</strong>
+        <strong>${escapeHtml(title)}</strong>
         <span>${sign}${percent.toFixed(2)}%</span>
-        <small>${sign}${formatPrice(delta, asset.quoteCurrency)} · ${detail}</small>
+        <small>${sign}${escapeHtml(formatPrice(delta, asset.quoteCurrency))} · ${escapeHtml(detail)}</small>
     `;
     return card;
 }
@@ -3310,9 +3433,9 @@ function addChartStat(label, value, detail, isPositive = null) {
         card.classList.add(isPositive ? "positive-stat" : "negative-stat");
     }
     card.innerHTML = `
-        <span>${label}</span>
-        <strong>${value}</strong>
-        <small>${detail}</small>
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${escapeHtml(detail)}</small>
     `;
     chartStats.appendChild(card);
 }
@@ -3677,23 +3800,23 @@ function drawHoverLayer() {
             : formatPrice(pointPrice, item.quoteCurrency);
         tooltipRows.push(`
             <div class="tooltip-row">
-                <strong>${item.asset.symbol}</strong>
-                <span>${displayValue}</span>
+                <strong>${escapeHtml(item.asset.symbol)}</strong>
+                <span>${escapeHtml(displayValue)}</span>
             </div>
             <div class="tooltip-row tooltip-subrow">
                 <small>Point change</small>
-                <span class="${stepMove >= 0 ? "change-up" : "change-down"}">${formatSignedPrice(stepMove, item.quoteCurrency)} · ${formatSigned(stepPercent)}%</span>
+                <span class="${stepMove >= 0 ? "change-up" : "change-down"}">${escapeHtml(formatSignedPrice(stepMove, item.quoteCurrency))} · ${formatSigned(stepPercent)}%</span>
             </div>
             <div class="tooltip-row tooltip-subrow">
                 <small>Window change</small>
-                <span class="${windowMove >= 0 ? "change-up" : "change-down"}">${formatSignedPrice(windowMove, item.quoteCurrency)} · ${formatSigned(windowPercent)}%</span>
+                <span class="${windowMove >= 0 ? "change-up" : "change-down"}">${escapeHtml(formatSignedPrice(windowMove, item.quoteCurrency))} · ${formatSigned(windowPercent)}%</span>
             </div>
         `);
     });
 
     const point = firstSeries.points[chartHoverIndex];
     chartTooltip.innerHTML = `
-        <small>${formatChartPointLabel(point)}</small>
+        <small>${escapeHtml(formatChartPointLabel(point))}</small>
         ${tooltipRows.join("")}
     `;
     chartTooltip.hidden = false;
@@ -3736,12 +3859,12 @@ function renderRippleMap(data) {
         const row = document.createElement("div");
         row.className = "ripple-edge";
         row.innerHTML = `
-            <div class="node">${edge.from}</div>
+            <div class="node">${escapeHtml(edge.from)}</div>
             <div class="arrow">-></div>
-            <div class="node">${edge.to}</div>
+            <div class="node">${escapeHtml(edge.to)}</div>
             <div class="relationship">
-                ${edge.relationship}<br>
-                Direction: ${edge.direction}. Strength: ${edge.strength}. Confidence: ${edge.confidence}.
+                ${escapeHtml(edge.relationship)}<br>
+                Direction: ${escapeHtml(edge.direction)}. Strength: ${escapeHtml(edge.strength)}. Confidence: ${escapeHtml(edge.confidence)}.
             </div>
         `;
         rippleMap.appendChild(row);
@@ -3751,3 +3874,47 @@ function renderRippleMap(data) {
 start().catch((error) => {
     snapshot.textContent = error.message;
 });
+if (!recoveryRouteRequested) {
+    initializeAnalytics();
+}
+
+function initializeAnalytics() {
+    window.dataLayer = window.dataLayer || [];
+    const gtag = function () {
+        window.dataLayer.push(arguments);
+    };
+    gtag("js", new Date());
+    gtag("config", "G-PPSSNQW9TR");
+    const analyticsScript = document.createElement("script");
+    analyticsScript.async = true;
+    analyticsScript.src = "https://www.googletagmanager.com/gtag/js?id=G-PPSSNQW9TR";
+    document.head.appendChild(analyticsScript);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function safeExternalUrl(value) {
+    if (!value) {
+        return null;
+    }
+    try {
+        const url = new URL(String(value), window.location.origin);
+        const localDevelopment = url.protocol === "http:"
+            && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+        return url.protocol === "https:" || localDevelopment ? url.href : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function readCookie(name) {
+    const prefix = `${name}=`;
+    return document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix))?.slice(prefix.length) ?? null;
+}

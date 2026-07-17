@@ -1,6 +1,7 @@
 package com.RippleLens.service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -9,23 +10,34 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.RippleLens.live.LivePriceTickResponse;
+import com.RippleLens.security.RateLimitExceededException;
 
 @Service
 public class LivePriceStreamService {
 
+    private static final int MAX_STREAMS_PER_CLIENT = 3;
+    private static final int MAX_STREAMS_GLOBAL = 500;
+    private static final long STREAM_TIMEOUT_MILLIS = Duration.ofMinutes(5).toMillis();
+
     private final LivePriceProviderService livePriceProviderService;
-    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final List<ClientEmitter> emitters = new CopyOnWriteArrayList<>();
 
     public LivePriceStreamService(LivePriceProviderService livePriceProviderService) {
         this.livePriceProviderService = livePriceProviderService;
     }
 
-    public SseEmitter createEmitter() {
-        SseEmitter emitter = new SseEmitter(0L);
-        emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError(error -> emitters.remove(emitter));
+    public synchronized SseEmitter createEmitter(String clientKey) {
+        long clientStreams = emitters.stream().filter(client -> client.clientKey().equals(clientKey)).count();
+        if (clientStreams >= MAX_STREAMS_PER_CLIENT || emitters.size() >= MAX_STREAMS_GLOBAL) {
+            throw new RateLimitExceededException(60);
+        }
+
+        SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MILLIS);
+        ClientEmitter client = new ClientEmitter(clientKey, emitter);
+        emitters.add(client);
+        emitter.onCompletion(() -> remove(client));
+        emitter.onTimeout(() -> remove(client));
+        emitter.onError(error -> remove(client));
 
         try {
             emitter.send(SseEmitter.event()
@@ -35,7 +47,7 @@ public class LivePriceStreamService {
                     .name("price-batch")
                     .data(livePriceProviderService.getCurrentSnapshot()));
         } catch (IOException error) {
-            emitters.remove(emitter);
+            remove(client);
             emitter.completeWithError(error);
         }
         return emitter;
@@ -50,15 +62,22 @@ public class LivePriceStreamService {
         }
 
         List<LivePriceTickResponse> ticks = livePriceProviderService.getRealPriceBatch();
-        for (SseEmitter emitter : emitters) {
+        for (ClientEmitter client : emitters) {
             try {
-                emitter.send(SseEmitter.event()
+                client.emitter().send(SseEmitter.event()
                         .name("price-batch")
                         .data(ticks));
             } catch (IOException | IllegalStateException error) {
-                emitters.remove(emitter);
-                emitter.completeWithError(error);
+                remove(client);
+                client.emitter().completeWithError(error);
             }
         }
+    }
+
+    private synchronized void remove(ClientEmitter client) {
+        emitters.remove(client);
+    }
+
+    private record ClientEmitter(String clientKey, SseEmitter emitter) {
     }
 }

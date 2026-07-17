@@ -24,9 +24,12 @@ import com.RippleLens.portfolio.PortfolioResponse;
 import com.RippleLens.portfolio.UpdatePortfolioHoldingRequest;
 import com.RippleLens.repository.AssetRepository;
 import com.RippleLens.repository.PortfolioHoldingRepository;
+import com.RippleLens.security.InputPolicy;
 
 @Service
 public class PortfolioService {
+
+    private static final long MAX_HOLDINGS_PER_WORKSPACE = 100;
 
     private final PortfolioHoldingRepository portfolioHoldingRepository;
     private final AssetRepository assetRepository;
@@ -52,6 +55,10 @@ public class PortfolioService {
         BigDecimal quantity = validateQuantity(request.quantity());
         BigDecimal averageCost = validateAverageCost(request.averageCost(), asset);
         String sessionKey = sessionKey();
+        if (portfolioHoldingRepository.countBySessionKey(sessionKey) >= MAX_HOLDINGS_PER_WORKSPACE
+                && portfolioHoldingRepository.findBySessionKeyAndAsset(sessionKey, asset).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio holding limit reached.");
+        }
         PortfolioHolding holding = portfolioHoldingRepository.findBySessionKeyAndAsset(sessionKey, asset)
                 .orElseGet(() -> new PortfolioHolding(sessionKey, asset, quantity, averageCost));
         holding.setQuantity(quantity);
@@ -205,17 +212,13 @@ public class PortfolioService {
     }
 
     private Asset findAsset(String symbol) {
-        if (symbol == null || symbol.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Asset symbol is required.");
-        }
-        return assetRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol: " + symbol));
+        return assetRepository.findBySymbolIgnoreCase(InputPolicy.assetSymbol(symbol))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol."));
     }
 
     private PortfolioHolding findHolding(Long id) {
         String sessionKey = sessionKey();
-        return portfolioHoldingRepository.findById(id)
-                .filter(holding -> sessionKey.equals(holding.getSessionKey()))
+        return portfolioHoldingRepository.findByIdAndSessionKey(id, sessionKey)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio holding not found."));
     }
 

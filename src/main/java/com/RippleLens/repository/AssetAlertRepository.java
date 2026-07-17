@@ -18,7 +18,7 @@ public interface AssetAlertRepository extends JpaRepository<AssetAlert, Long> {
 
     List<AssetAlert> findBySessionKeyAndAssetOrderByCreatedAtDesc(String sessionKey, Asset asset);
 
-    List<AssetAlert> findByAssetOrderByCreatedAtDesc(Asset asset);
+    Optional<AssetAlert> findByIdAndSessionKey(Long id, String sessionKey);
 
     long countBySessionKey(String sessionKey);
 

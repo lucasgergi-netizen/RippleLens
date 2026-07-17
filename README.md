@@ -16,7 +16,7 @@ Completed phases:
 - Phase 8: Asset comparison mode
 - Phase 9: Macro indicator context
 - Phase 10: Event-watch intelligence
-- Phase 11: Persistent H2 database
+- Phase 11: Persistent local H2 database with PostgreSQL for production
 - Phase 12: Market-terminal style chart upgrade
 - Phase 13: Full fintech-terminal frontend redesign
 - Phase 14: Shareable asset detail URLs
@@ -54,13 +54,13 @@ Completed phases:
 - Live top-crypto prices from Binance Spot, with CoinGecko fallback
 - Live major-currency rates from Frankfurter
 - Daily stored price observations
-- Manual live-data refresh endpoint
+- Authenticated manual live-data refresh endpoint
 - Scheduled refresh every 6 hours
 - Rule-based economic insight engine
 - Causal ripple maps
 - Macro context using World Bank indicators
 - Event-watch signals for supply-chain, central-bank, regulation, trade, and geopolitical risks
-- Persistent file-based H2 database at `./data/ripplelens`
+- Persistent file-based H2 database for local development and PostgreSQL with Flyway migrations for production
 - Confidence labels and financial-advice disclaimer
 
 ## APIs Used
@@ -85,7 +85,7 @@ GET /api/assets/BTC/prices/hourly
 GET /api/live/metals
 GET /api/live/cryptos
 GET /api/live/currencies
-GET /api/live/refresh
+POST /api/live/refresh (authenticated)
 GET /api/insights/BTC?days=7
 GET /api/metals/BTC/ripple-map
 GET /api/intelligence/macro
@@ -108,7 +108,7 @@ From terminal:
 ./mvnw spring-boot:run
 ```
 
-The database is now persistent. Restarting the app keeps stored observations in the local `data` folder.
+The local database is persistent. Restarting the app keeps stored observations in the local `data` folder. Production does not use this H2 file; it requires PostgreSQL because hosted container files are ephemeral.
 
 ## Project Explanation
 
@@ -129,3 +129,18 @@ RippleLens avoids guaranteed investment predictions. Its explanations are educat
 - possible consequences
 - uncertainty
 - data source
+
+## Production Security Checklist
+
+Before every production deployment:
+
+- Confirm `SPRING_PROFILES_ACTIVE=prod`, HTTPS enforcement, Secure/HttpOnly/SameSite cookies, and the exact CORS origin.
+- Use PostgreSQL with TLS, a restricted application user, Flyway validation, automated backups, restore testing, and credential rotation.
+- Store database credentials, API keys, `SECURITY_AUDIT_KEY`, and email-provider credentials only in the hosting secret manager.
+- Keep the H2 console, multipart uploads, verbose errors, SQL logging, and unused management endpoints disabled.
+- Require CI, CodeQL, dependency review, OWASP Dependency-Check, FindSecBugs, and Dependabot checks to pass.
+- Enable GitHub private vulnerability reporting, secret scanning, and push protection in repository settings.
+- Configure password-reset delivery and test that links expire after 15 minutes, work once, and invalidate existing sessions.
+- Review safe audit events and rate-limit activity without recording passwords, raw emails, IP addresses, session IDs, or tokens.
+- Test database restore, credential rotation, account lockout, logout, CSRF, authorization, and guest-session isolation.
+- Follow the incident process in [SECURITY.md](SECURITY.md) when exposure or active abuse is suspected.

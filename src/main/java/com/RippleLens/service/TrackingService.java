@@ -26,9 +26,13 @@ import com.RippleLens.repository.AssetRepository;
 import com.RippleLens.repository.WatchlistItemRepository;
 import com.RippleLens.watchlist.CreateWatchlistItemRequest;
 import com.RippleLens.watchlist.WatchlistItemResponse;
+import com.RippleLens.security.InputPolicy;
 
 @Service
 public class TrackingService {
+
+    private static final long MAX_WATCHLIST_ITEMS = 100;
+    private static final long MAX_ALERTS = 100;
 
     private final WatchlistItemRepository watchlistRepository;
     private final AssetAlertRepository alertRepository;
@@ -57,6 +61,10 @@ public class TrackingService {
     public WatchlistItemResponse addWatchlistItem(CreateWatchlistItemRequest request) {
         Asset asset = findAsset(request.symbol());
         String sessionKey = sessionKey();
+        if (watchlistRepository.countBySessionKey(sessionKey) >= MAX_WATCHLIST_ITEMS
+                && watchlistRepository.findBySessionKeyAndAsset(sessionKey, asset).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Watchlist limit reached.");
+        }
         return watchlistRepository.findBySessionKeyAndAsset(sessionKey, asset)
                 .map(this::toWatchlistResponse)
                 .orElseGet(() -> toWatchlistResponse(watchlistRepository.save(new WatchlistItem(sessionKey, asset))));
@@ -65,8 +73,7 @@ public class TrackingService {
     @Transactional
     public void removeWatchlistItem(Long id) {
         String sessionKey = sessionKey();
-        WatchlistItem item = watchlistRepository.findById(id)
-                .filter(existing -> sessionKey.equals(existing.getSessionKey()))
+        WatchlistItem item = watchlistRepository.findByIdAndSessionKey(id, sessionKey)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Watchlist item not found"));
         watchlistRepository.delete(item);
     }
@@ -86,6 +93,9 @@ public class TrackingService {
     @Transactional
     public AlertResponse createAlert(CreateAlertRequest request) {
         Asset asset = findAsset(request.symbol());
+        if (alertRepository.countBySessionKey(sessionKey()) >= MAX_ALERTS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Alert limit reached.");
+        }
         validateAlert(request.alertType(), request.targetValue());
         boolean recurring = Boolean.TRUE.equals(request.recurring());
         String customName = normalizeName(request.customName());
@@ -165,7 +175,7 @@ public class TrackingService {
     public List<AlertResponse> evaluateAlertsForAsset(String symbol) {
         Asset asset = findAsset(symbol);
         List<AlertResponse> newlyTriggeredAlerts = new ArrayList<>();
-        for (AssetAlert alert : alertRepository.findByAssetOrderByCreatedAtDesc(asset)) {
+        for (AssetAlert alert : alertRepository.findBySessionKeyAndAssetOrderByCreatedAtDesc(sessionKey(), asset)) {
             AlertStatus previousStatus = alert.getStatus();
             Instant previousTriggeredAt = alert.getTriggeredAt();
             AssetAlert evaluated = evaluateAndSave(alert);
@@ -261,17 +271,13 @@ public class TrackingService {
     }
 
     private Asset findAsset(String symbol) {
-        if (symbol == null || symbol.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Asset symbol is required.");
-        }
-        return assetRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol: " + symbol));
+        return assetRepository.findBySymbolIgnoreCase(InputPolicy.assetSymbol(symbol))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol."));
     }
 
     private AssetAlert findAlert(Long id) {
         String sessionKey = sessionKey();
-        return alertRepository.findById(id)
-                .filter(alert -> sessionKey.equals(alert.getSessionKey()))
+        return alertRepository.findByIdAndSessionKey(id, sessionKey)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alert not found"));
     }
 

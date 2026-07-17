@@ -1,4 +1,7 @@
 package com.RippleLens.workspace;
 
-public record RecentAssetRequest(String symbol) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record RecentAssetRequest(@NotBlank @Size(max = 32) String symbol) {
 }

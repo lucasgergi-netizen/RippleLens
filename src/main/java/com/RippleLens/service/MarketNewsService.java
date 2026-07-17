@@ -174,7 +174,7 @@ public class MarketNewsService {
                 Thread.currentThread().interrupt();
             }
             return new ProviderHealthResponse("NewsAPI.org", "Related asset news", "UNAVAILABLE", elapsedMs(started),
-                    checkedAt, "Connection failed: " + error.getClass().getSimpleName());
+                    checkedAt, "Connection to NewsAPI.org failed.");
         }
     }
 

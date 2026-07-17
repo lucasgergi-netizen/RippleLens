@@ -4,15 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>RippleLens</title>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PPSSNQW9TR"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-        gtag("js", new Date());
-        gtag("config", "G-PPSSNQW9TR");
-    </script>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/styles.css?v=20260711-mobile">
 </head>
@@ -548,17 +539,31 @@
             <label for="authEmail">Email</label>
             <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
             <label for="authPassword">Password</label>
-            <input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+            <input id="authPassword" type="password" placeholder="At least 12 characters" autocomplete="current-password" maxlength="128">
             <button id="loginButton" type="button">Sign in with Email</button>
             <button id="registerButton" type="button" class="secondary-button">Create account</button>
+            <button id="forgotPasswordButton" type="button" class="link-button">Forgot password?</button>
         </div>
-        <div class="auth-switch">
+        <div id="forgotPasswordForm" class="auth-forms" hidden>
+            <label for="recoveryEmail">Email</label>
+            <input id="recoveryEmail" type="email" placeholder="you@example.com" autocomplete="email" maxlength="254">
+            <button id="sendResetLinkButton" type="button">Send reset link</button>
+            <button id="cancelRecoveryButton" type="button" class="ghost-button">Back to sign in</button>
+        </div>
+        <div id="resetPasswordForm" class="auth-forms" hidden>
+            <label for="newPassword">New password</label>
+            <input id="newPassword" type="password" placeholder="At least 12 characters" autocomplete="new-password" maxlength="128">
+            <label for="confirmNewPassword">Confirm new password</label>
+            <input id="confirmNewPassword" type="password" placeholder="Repeat your new password" autocomplete="new-password" maxlength="128">
+            <button id="resetPasswordButton" type="button">Update password</button>
+        </div>
+        <div id="authSwitch" class="auth-switch">
             <span id="authSwitchText">Don't have an account?</span>
             <button id="authSwitchButton" type="button" class="link-button">Register</button>
         </div>
     </div>
 </section>
 
-<script src="/app.js?v=20260711-mobile"></script>
+<script src="/app.js?v=20260717-security"></script>
 </body>
 </html>

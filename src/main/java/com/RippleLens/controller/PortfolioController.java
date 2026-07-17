@@ -15,6 +15,7 @@ import com.RippleLens.portfolio.CreatePortfolioHoldingRequest;
 import com.RippleLens.portfolio.PortfolioResponse;
 import com.RippleLens.portfolio.UpdatePortfolioHoldingRequest;
 import com.RippleLens.service.PortfolioService;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/portfolio")
@@ -33,14 +34,14 @@ public class PortfolioController {
 
     @PostMapping("/holdings")
     @ResponseStatus(HttpStatus.CREATED)
-    public PortfolioResponse saveHolding(@RequestBody CreatePortfolioHoldingRequest request) {
+    public PortfolioResponse saveHolding(@Valid @RequestBody CreatePortfolioHoldingRequest request) {
         return portfolioService.saveHolding(request);
     }
 
     @PatchMapping("/holdings/{id}")
     public PortfolioResponse updateHolding(
             @PathVariable Long id,
-            @RequestBody UpdatePortfolioHoldingRequest request) {
+            @Valid @RequestBody UpdatePortfolioHoldingRequest request) {
         return portfolioService.updateHolding(id, request);
     }
 

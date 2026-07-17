@@ -19,6 +19,9 @@ import com.RippleLens.price.PriceSeriesPointResponse;
 import com.RippleLens.repository.AssetPricePointRepository;
 import com.RippleLens.repository.AssetRepository;
 import com.RippleLens.trust.AssetTrustReportResponse;
+import com.RippleLens.security.InputPolicy;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AssetService {
@@ -40,8 +43,9 @@ public class AssetService {
     }
 
     public Asset getAssetBySymbol(String symbol) {
-        return assetRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown asset symbol: " + symbol));
+        String normalized = InputPolicy.assetSymbol(symbol);
+        return assetRepository.findBySymbolIgnoreCase(normalized)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol."));
     }
 
     public List<AssetPricePoint> getPriceHistory(String symbol) {

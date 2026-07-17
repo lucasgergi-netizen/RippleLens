@@ -43,16 +43,19 @@ public class InsightService {
     }
 
     public InsightResponse explain(String symbol, int days) {
+        int windowDays = Math.max(1, Math.min(365, days));
         Asset asset = assetService.getAssetBySymbol(symbol);
         List<AssetPricePoint> history = assetService.getPriceHistory(symbol);
-        List<AssetPricePoint> window = history.size() > days ? history.subList(history.size() - days, history.size()) : history;
+        List<AssetPricePoint> window = history.size() > windowDays
+                ? history.subList(history.size() - windowDays, history.size())
+                : history;
         double change = calculateChange(window);
         String direction = change >= 0 ? "increased" : "decreased";
         String confidence = confidenceFor(asset, change, window.size());
         List<String> causes = causesFor(asset);
         List<String> consequences = consequencesFor(asset);
         List<String> signals = supportingSignalsFor(asset, change, window.size());
-        InsightContext context = buildContext(asset, days);
+        InsightContext context = buildContext(asset, windowDays);
         causes = enrichCauses(causes, context);
         consequences = enrichConsequences(consequences, context);
         signals = enrichSignals(signals, context);
@@ -65,7 +68,7 @@ public class InsightService {
                         asset.getName(),
                         direction,
                         Math.abs(change),
-                        days,
+                        windowDays,
                         magnitude,
                         pressureChannel,
                         contextSentence,
@@ -89,7 +92,7 @@ public class InsightService {
                 signals,
                 "Educational analysis only. RippleLens does not provide guaranteed forecasts or personal investment advice.");
 
-        return openAiAnalysisClient.explain(asset, window, baseline, context, days).orElse(baseline);
+        return openAiAnalysisClient.explain(asset, window, baseline, context, windowDays).orElse(baseline);
     }
 
     private InsightContext buildContext(Asset asset, int days) {

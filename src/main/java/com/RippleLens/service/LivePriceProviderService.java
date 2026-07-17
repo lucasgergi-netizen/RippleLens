@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.RippleLens.alert.AlertResponse;
 import com.RippleLens.live.LivePriceTickResponse;
 import com.RippleLens.model.Asset;
 import com.RippleLens.model.AssetPricePoint;
@@ -26,7 +25,6 @@ public class LivePriceProviderService {
     private final MarketDataIngestionService marketDataIngestionService;
     private final AssetRepository assetRepository;
     private final AssetPricePointRepository pricePointRepository;
-    private final TrackingService trackingService;
     private final Duration refreshCadence;
     private final AtomicReference<Instant> lastProviderRefresh = new AtomicReference<>(Instant.EPOCH);
     private final Object refreshLock = new Object();
@@ -35,12 +33,10 @@ public class LivePriceProviderService {
             MarketDataIngestionService marketDataIngestionService,
             AssetRepository assetRepository,
             AssetPricePointRepository pricePointRepository,
-            TrackingService trackingService,
             @Value("${ripplelens.live.real-refresh-ms:60000}") long realRefreshMs) {
         this.marketDataIngestionService = marketDataIngestionService;
         this.assetRepository = assetRepository;
         this.pricePointRepository = pricePointRepository;
-        this.trackingService = trackingService;
         this.refreshCadence = Duration.ofMillis(Math.max(15_000L, realRefreshMs));
     }
 
@@ -93,9 +89,8 @@ public class LivePriceProviderService {
         BigDecimal price = safePrice(asset.getCurrentPrice());
         BigDecimal previousPrice = latestPreviousPrice(asset).orElse(price);
         BigDecimal priceChange = price.subtract(previousPrice);
-        List<AlertResponse> triggeredAlerts = evaluateAlerts
-                ? trackingService.evaluateAlertsForAsset(asset.getSymbol())
-                : List.of();
+        // Live market snapshots are shared data and must never evaluate or return another user's alerts.
+        List<com.RippleLens.alert.AlertResponse> triggeredAlerts = List.of();
 
         return new LivePriceTickResponse(
                 asset.getSymbol(),

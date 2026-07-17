@@ -27,6 +27,10 @@ public class AppUser {
 
     private String role;
     private Instant createdAt;
+    private Instant passwordChangedAt;
+    private int failedLoginAttempts;
+    private Instant lockedUntil;
+    private Instant lastLoginAt;
 
     public AppUser() {
     }
@@ -37,6 +41,7 @@ public class AppUser {
         this.passwordHash = passwordHash;
         this.role = "USER";
         this.createdAt = Instant.now();
+        this.passwordChangedAt = this.createdAt;
     }
 
     public Long getId() {
@@ -61,5 +66,40 @@ public class AppUser {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getPasswordChangedAt() {
+        return passwordChangedAt;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(Instant lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = Instant.now();
+        this.failedLoginAttempts = 0;
+        this.lockedUntil = null;
     }
 }

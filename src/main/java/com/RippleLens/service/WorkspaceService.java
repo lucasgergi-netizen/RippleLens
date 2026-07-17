@@ -27,6 +27,7 @@ import com.RippleLens.workspace.RecentAssetResponse;
 import com.RippleLens.workspace.UpdateUserPreferencesRequest;
 import com.RippleLens.workspace.UserPreferencesResponse;
 import com.RippleLens.workspace.WorkspaceSummaryResponse;
+import com.RippleLens.security.InputPolicy;
 
 @Service
 public class WorkspaceService {
@@ -137,11 +138,8 @@ public class WorkspaceService {
     }
 
     private Asset findAsset(String symbol) {
-        if (symbol == null || symbol.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Asset symbol is required.");
-        }
-        return assetRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol: " + symbol));
+        return assetRepository.findBySymbolIgnoreCase(InputPolicy.assetSymbol(symbol))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol."));
     }
 
     private AssetCategory parseCategory(String value) {

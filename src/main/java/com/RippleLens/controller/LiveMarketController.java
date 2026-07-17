@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -21,6 +22,10 @@ import com.RippleLens.service.GoldApiMetalsClient;
 import com.RippleLens.service.LivePriceProviderService;
 import com.RippleLens.service.LivePriceStreamService;
 import com.RippleLens.service.MarketDataIngestionService;
+import com.RippleLens.security.RateLimitExceededException;
+import com.RippleLens.security.SecurityAuditService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/live")
@@ -33,6 +38,7 @@ public class LiveMarketController {
     private final MarketDataIngestionService marketDataIngestionService;
     private final LivePriceProviderService livePriceProviderService;
     private final LivePriceStreamService livePriceStreamService;
+    private final SecurityAuditService securityAuditService;
 
     public LiveMarketController(
             CoinGeckoClient coinGeckoClient,
@@ -41,7 +47,8 @@ public class LiveMarketController {
             DataProviderHealthService dataProviderHealthService,
             MarketDataIngestionService marketDataIngestionService,
             LivePriceProviderService livePriceProviderService,
-            LivePriceStreamService livePriceStreamService) {
+            LivePriceStreamService livePriceStreamService,
+            SecurityAuditService securityAuditService) {
         this.coinGeckoClient = coinGeckoClient;
         this.frankfurterClient = frankfurterClient;
         this.goldApiMetalsClient = goldApiMetalsClient;
@@ -49,6 +56,7 @@ public class LiveMarketController {
         this.marketDataIngestionService = marketDataIngestionService;
         this.livePriceProviderService = livePriceProviderService;
         this.livePriceStreamService = livePriceStreamService;
+        this.securityAuditService = securityAuditService;
     }
 
     @GetMapping("/metals")
@@ -66,7 +74,7 @@ public class LiveMarketController {
         return frankfurterClient.getLiveCurrencyRates();
     }
 
-    @GetMapping("/refresh")
+    @PostMapping("/refresh")
     public IngestionResult refreshLiveData() {
         return marketDataIngestionService.refreshLiveData();
     }
@@ -77,8 +85,14 @@ public class LiveMarketController {
     }
 
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamLivePrices() {
-        return livePriceStreamService.createEmitter();
+    public SseEmitter streamLivePrices(HttpServletRequest request) {
+        String clientKey = securityAuditService.fingerprint(request.getRemoteAddr());
+        try {
+            return livePriceStreamService.createEmitter(clientKey);
+        } catch (RateLimitExceededException error) {
+            securityAuditService.record(request, "rate_limit", "blocked_live_stream_capacity", clientKey);
+            throw error;
+        }
     }
 
     @GetMapping("/ticks")

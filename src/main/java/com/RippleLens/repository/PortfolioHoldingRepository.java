@@ -14,5 +14,7 @@ public interface PortfolioHoldingRepository extends JpaRepository<PortfolioHoldi
 
     Optional<PortfolioHolding> findBySessionKeyAndAsset(String sessionKey, Asset asset);
 
+    Optional<PortfolioHolding> findByIdAndSessionKey(Long id, String sessionKey);
+
     long countBySessionKey(String sessionKey);
 }

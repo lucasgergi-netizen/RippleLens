@@ -164,7 +164,7 @@ public class MetalsDevClient {
                 Thread.currentThread().interrupt();
             }
             return new ProviderHealthResponse("Metals.Dev", "Metals historical prices", "UNAVAILABLE", elapsedMs(started),
-                    checkedAt, "Connection failed: " + error.getClass().getSimpleName());
+                    checkedAt, "Connection to Metals.Dev failed.");
         }
     }
 

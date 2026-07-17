@@ -18,6 +18,9 @@ import com.RippleLens.relationship.RelationshipItemResponse;
 import com.RippleLens.relationship.RelationshipReportResponse;
 import com.RippleLens.repository.AssetPricePointRepository;
 import com.RippleLens.repository.AssetRepository;
+import com.RippleLens.security.InputPolicy;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class RelationshipEngineService {
@@ -34,8 +37,8 @@ public class RelationshipEngineService {
 
     public RelationshipReportResponse analyze(String symbol, int days) {
         int windowDays = Math.max(7, Math.min(days, 365));
-        Asset selectedAsset = assetRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown asset symbol: " + symbol));
+        Asset selectedAsset = assetRepository.findBySymbolIgnoreCase(InputPolicy.assetSymbol(symbol))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown asset symbol."));
         List<AssetPricePoint> selectedWindow = windowFor(selectedAsset, windowDays);
         Map<LocalDate, Double> selectedReturns = dailyReturns(selectedWindow);
 

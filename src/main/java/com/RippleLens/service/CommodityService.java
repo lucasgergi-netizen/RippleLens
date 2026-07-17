@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 
 import com.RippleLens.model.Commodity;
 import com.RippleLens.repository.CommodityRepository;
+import com.RippleLens.security.InputPolicy;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommodityService {
@@ -23,7 +26,7 @@ public class CommodityService {
     }
 
     public Commodity getCommodityBySymbol(String symbol) {
-        return commodityRepository.findBySymbolIgnoreCase(symbol)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown commodity symbol: " + symbol));
+        return commodityRepository.findBySymbolIgnoreCase(InputPolicy.assetSymbol(symbol))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown commodity symbol."));
     }
 }

@@ -133,7 +133,7 @@ public class DataProviderHealthService {
                 Thread.currentThread().interrupt();
             }
             return new ProviderHealthResponse(provider, category, "UNAVAILABLE", elapsedMs(started), checkedAt,
-                    "Connection failed: " + error.getClass().getSimpleName());
+                    "Connection to provider failed.");
         }
     }
 

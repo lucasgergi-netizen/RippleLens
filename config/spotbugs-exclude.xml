@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+      Spring-managed collaborators, JPA relationships, and response-record lists are
+      intentionally passed by reference inside the trusted server process. These
+      EI warnings do not represent a remote data-exposure path.
+    -->
+    <Match>
+        <Package name="~com\.RippleLens\..*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Java text blocks intentionally contain platform-independent prompt newlines. -->
+    <Match>
+        <Class name="com.RippleLens.service.OpenAiAnalysisClient"/>
+        <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+    </Match>
+</FindBugsFilter>

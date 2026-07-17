@@ -14,6 +14,8 @@ public interface WatchlistItemRepository extends JpaRepository<WatchlistItem, Lo
 
     Optional<WatchlistItem> findBySessionKeyAndAsset(String sessionKey, Asset asset);
 
+    Optional<WatchlistItem> findByIdAndSessionKey(Long id, String sessionKey);
+
     boolean existsBySessionKeyAndAsset(String sessionKey, Asset asset);
 
     long countBySessionKey(String sessionKey);

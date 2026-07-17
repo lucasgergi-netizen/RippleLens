@@ -15,6 +15,7 @@ import com.RippleLens.workspace.RecentAssetResponse;
 import com.RippleLens.workspace.UpdateUserPreferencesRequest;
 import com.RippleLens.workspace.UserPreferencesResponse;
 import com.RippleLens.workspace.WorkspaceSummaryResponse;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/workspace")
@@ -32,12 +33,12 @@ public class WorkspaceController {
     }
 
     @PatchMapping("/preferences")
-    public UserPreferencesResponse updatePreferences(@RequestBody UpdateUserPreferencesRequest request) {
+    public UserPreferencesResponse updatePreferences(@Valid @RequestBody UpdateUserPreferencesRequest request) {
         return workspaceService.updatePreferences(request);
     }
 
     @PostMapping("/recent")
-    public List<RecentAssetResponse> recordRecentAsset(@RequestBody RecentAssetRequest request) {
+    public List<RecentAssetResponse> recordRecentAsset(@Valid @RequestBody RecentAssetRequest request) {
         return workspaceService.recordRecentAsset(request.symbol());
     }
 }
